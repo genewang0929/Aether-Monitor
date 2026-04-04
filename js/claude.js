@@ -7,11 +7,11 @@ let claudePanelOpen = false;
 // ── PANEL TOGGLE ─────────────────────────────────────────────────────────────
 
 function initClaudePanel() {
-  const panel      = document.getElementById('claude-panel');
-  const toggleBtn  = document.getElementById('cp-collapse-btn');
-  const header     = document.querySelector('.cp-header');
-  const askBtn     = document.getElementById('claude-ask-btn');
-  const input      = document.getElementById('claude-input');
+  const panel = document.getElementById('claude-panel');
+  const toggleBtn = document.getElementById('cp-collapse-btn');
+  const header = document.querySelector('.cp-header');
+  const askBtn = document.getElementById('claude-ask-btn');
+  const input = document.getElementById('claude-input');
 
   // Toggle on header click
   header.addEventListener('click', (e) => {
@@ -57,24 +57,24 @@ async function triggerAnalysis(city, aqiData) {
   // Show city bar
   const cityBar = document.getElementById('cp-city-bar');
   cityBar.style.display = 'flex';
-  document.getElementById('ccb-name').textContent   = city.name.toUpperCase();
-  document.getElementById('ccb-aqi').textContent    = `AQI ${aqiData.aqi}`;
-  document.getElementById('ccb-aqi').style.color    = getAQIColor(aqiData.aqi);
-  document.getElementById('ccb-cat').textContent    = getAQICategory(aqiData.aqi);
+  document.getElementById('ccb-name').textContent = city.name.toUpperCase();
+  document.getElementById('ccb-aqi').textContent = `AQI ${aqiData.aqi}`;
+  document.getElementById('ccb-aqi').style.color = getAQIColor(aqiData.aqi);
+  document.getElementById('ccb-cat').textContent = getAQICategory(aqiData.aqi);
 
-  // Show weather in city bar
-  const weather = MOCK_WEATHER[city.name] || {};
-  if (weather.wind) {
-    document.getElementById('ccb-weather').textContent =
-      `${weather.temp}°F · ${weather.wind.speed}mph ${weather.wind.dir} · ${weather.humidity}% RH`;
-  }
-
-  // Show loading
+  // Show loading (weather info will update after fetch)
+  document.getElementById('ccb-weather').textContent = 'LOADING...';
   showLoading();
 
   try {
-    // Fetch weather (from cache / mock)
+    // Fetch weather (works for both predefined cities and ad-hoc locations via lat/lon)
     const weatherData = await fetchWeather(city);
+
+    // Update weather in city bar with fetched data
+    if (weatherData.wind) {
+      document.getElementById('ccb-weather').textContent =
+        `${weatherData.temp}°F · ${weatherData.wind.speed}mph ${weatherData.wind.dir} · ${weatherData.humidity}% RH`;
+    }
 
     // Fetch Claude analysis
     const analysis = await fetchClaudeAnalysis(city, aqiData, weatherData);
@@ -154,8 +154,8 @@ async function showNationalSummary(aqiData) {
 
   const cities = CONFIG.CITIES;
   const values = cities.map(c => (aqiData[c.name]?.aqi || 50));
-  const avg    = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  const worst  = cities.reduce((best, c) =>
+  const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  const worst = cities.reduce((best, c) =>
     (aqiData[c.name]?.aqi || 0) > (aqiData[best.name]?.aqi || 0) ? c : best
   );
 
@@ -168,9 +168,9 @@ async function showNationalSummary(aqiData) {
 
   const summary = CONFIG.CLAUDE_KEY
     ? await fetchClaudeQuery(
-        `Give me a brief national air quality summary. National average AQI today is ${avg}.`,
-        aqiData
-      )
+      `Give me a brief national air quality summary. National average AQI today is ${avg}.`,
+      aqiData
+    )
     : `National average AQI is currently ${avg} (${getAQICategory(avg)}), with ${worst.name} recording the highest reading at ${aqiData[worst.name]?.aqi || '--'}. ${avg > 100 ? 'Multiple cities are exceeding healthy thresholds — sensitive populations should reduce prolonged outdoor activity.' : 'Most US cities are within acceptable air quality ranges today.'} Select any city node on the map for a detailed atmospheric analysis.`;
 
   showResponse(summary);

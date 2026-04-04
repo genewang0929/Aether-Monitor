@@ -12,8 +12,8 @@ let selectedCity = null;
 
 async function initMap() {
   const container = document.getElementById('map-container');
-  const svgEl     = document.getElementById('map-svg');
-  const canvas    = document.getElementById('particle-canvas');
+  const svgEl = document.getElementById('map-svg');
+  const canvas = document.getElementById('particle-canvas');
 
   const { w, h } = getContainerSize(container);
 
@@ -21,7 +21,7 @@ async function initMap() {
   mapSvg = d3.select(svgEl).attr('width', w).attr('height', h);
 
   // Init particle canvas
-  canvas.width  = w;
+  canvas.width = w;
   canvas.height = h;
   particleSystem = new ParticleSystem(canvas);
 
@@ -54,6 +54,178 @@ async function initMap() {
     if (tooltip.classList.contains('hidden')) return;
     positionTooltip(tooltip, e.clientX, e.clientY, container);
   });
+
+  // Click-anywhere on map background
+  svgEl.addEventListener('click', (e) => {
+    // Ignore clicks on city nodes (they have their own handler)
+    if (e.target.closest('.city-node')) return;
+    handleMapClick(e, container);
+  });
+}
+
+// ── CLICK-ANYWHERE ────────────────────────────────────────────────────────────
+
+let adHocMarker = null;
+
+async function handleMapClick(event, container) {
+  const rect = container.getBoundingClientRect();
+  const px = event.clientX - rect.left;
+  const py = event.clientY - rect.top;
+
+  // Invert pixel → [lon, lat]
+  const coords = mapProjection.invert([px, py]);
+  if (!coords) return; // Outside US bounds
+
+  const [lon, lat] = coords;
+
+  // Sanity check: rough US bounding box
+  if (lat < 24 || lat > 50 || lon < -125 || lon > -66) return;
+
+  const roundLat = Math.round(lat * 100) / 100;
+  const roundLon = Math.round(lon * 100) / 100;
+
+  // Build ad-hoc location object
+  const location = {
+    id: 'AD_HOC',
+    name: `${roundLat}°N, ${Math.abs(roundLon)}°W`,
+    state: '--',
+    lat: roundLat,
+    lon: roundLon,
+  };
+
+  // Remove previous ad-hoc marker
+  if (adHocMarker) adHocMarker.remove();
+
+  // Render temporary marker at click position
+  adHocMarker = renderAdHocMarker(px, py, '#22d3ee');
+
+  // Clear previous city selection
+  cityGroup?.selectAll('.city-node .city-circle').attr('stroke-width', 1.5);
+  selectedCity = null;
+  document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('sb-selected').textContent = `SELECTED: AD_HOC_${roundLat}_${Math.abs(roundLon)}`;
+
+  // Show tooltip with loading state
+  showAdHocTooltip(location, { aqi: '...', pollutant: '...' }, event);
+
+  // Fetch AQI + Weather in parallel
+  try {
+    const [aqiData, weatherData] = await Promise.all([
+      fetchLocationAQI(roundLat, roundLon),
+      fetchWeather(location),
+    ]);
+
+    if (aqiData.aqi === null) {
+      // No data for this location
+      hideTooltip();
+      if (adHocMarker) adHocMarker.remove();
+      return;
+    }
+
+    // Update marker color based on AQI
+    const color = getAQIColor(aqiData.aqi);
+    if (adHocMarker) {
+      adHocMarker.select('.adhoc-circle').attr('fill', color).attr('stroke', color);
+      adHocMarker.select('.adhoc-glow').attr('fill', color);
+    }
+
+    // Update name with reporting area if available
+    if (aqiData.reportingArea) {
+      location.name = aqiData.reportingArea;
+    }
+
+    // Update tooltip with real data
+    showAdHocTooltip(location, aqiData, event);
+
+    // Trigger Claude analysis
+    triggerAnalysis(location, aqiData);
+
+  } catch (err) {
+    console.error('[Map] Ad-hoc click failed:', err);
+    if (adHocMarker) adHocMarker.remove();
+  }
+}
+
+function renderAdHocMarker(cx, cy, color) {
+  if (!cityGroup) return null;
+
+  const g = cityGroup.append('g')
+    .attr('class', 'adhoc-marker')
+    .attr('transform', `translate(${cx},${cy})`);
+
+  // Glow halo
+  g.append('circle')
+    .attr('class', 'adhoc-glow')
+    .attr('r', 12)
+    .attr('fill', color)
+    .attr('opacity', 0.1)
+    .attr('filter', 'url(#city-glow)');
+
+  // Main dot
+  g.append('circle')
+    .attr('class', 'adhoc-circle')
+    .attr('r', 6)
+    .attr('fill', color)
+    .attr('fill-opacity', 0.9)
+    .attr('stroke', color)
+    .attr('stroke-width', 2)
+    .attr('filter', 'url(#city-glow)');
+
+  // Inner white dot
+  g.append('circle')
+    .attr('r', 2)
+    .attr('fill', '#fff')
+    .attr('opacity', 0.9);
+
+  // Label
+  g.append('text')
+    .attr('x', 0)
+    .attr('y', -14)
+    .attr('text-anchor', 'middle')
+    .attr('fill', color)
+    .attr('font-family', "'Space Mono', monospace")
+    .attr('font-size', '7px')
+    .attr('letter-spacing', '1px')
+    .attr('opacity', 0.8)
+    .text('AD_HOC');
+
+  // Ping animation
+  const ping = g.append('circle')
+    .attr('r', 6)
+    .attr('fill', 'none')
+    .attr('stroke', color)
+    .attr('stroke-width', 1)
+    .attr('opacity', 0)
+    .node();
+
+  if (window.gsap) {
+    gsap.to(ping, {
+      attr: { r: 20, opacity: 0 },
+      duration: 1.5,
+      repeat: 2,
+      ease: 'power1.out',
+      onStart: () => gsap.set(ping, { attr: { r: 6, opacity: 0.6 } }),
+    });
+  }
+
+  return g;
+}
+
+function showAdHocTooltip(location, data, event) {
+  const tooltip = document.getElementById('map-tooltip');
+  const container = document.getElementById('map-container');
+
+  document.getElementById('tt-id').textContent = 'AD_HOC';
+  document.getElementById('tt-city').textContent = location.name.toUpperCase();
+  document.getElementById('tt-aqi').textContent = data.aqi || '--';
+  document.getElementById('tt-aqi').style.color = data.aqi && data.aqi !== '...' ? getAQIColor(data.aqi) : 'var(--text-secondary)';
+  document.getElementById('tt-cat').textContent = data.aqi && data.aqi !== '...' ? getAQICategory(data.aqi) : 'LOADING';
+  document.getElementById('tt-cat').style.color = data.aqi && data.aqi !== '...' ? getAQIColor(data.aqi) : 'var(--text-secondary)';
+  document.getElementById('tt-pollutant').textContent = data.pollutant || '--';
+  document.getElementById('tt-time').textContent = data.timestamp ? formatTime(new Date(data.timestamp)) : '--:--';
+
+  tooltip.classList.remove('hidden');
+  positionTooltip(tooltip, event.clientX, event.clientY, container);
 }
 
 function buildProjection(w, h) {
@@ -150,11 +322,11 @@ function renderCityNodes(aqiData) {
     city.x = cx;
     city.y = cy;
 
-    const data    = aqiData[city.name] || { aqi: 0, pollutant: 'PM2.5' };
-    const aqi     = data.aqi;
-    const color   = getAQIColor(aqi);
-    const radius  = getCityRadius(city.pop);
-    const isHigh  = aqi > 150;
+    const data = aqiData[city.name] || { aqi: 0, pollutant: 'PM2.5' };
+    const aqi = data.aqi;
+    const color = getAQIColor(aqi);
+    const radius = getCityRadius(city.pop);
+    const isHigh = aqi > 150;
 
     const g = cityGroup.append('g')
       .attr('class', 'city-node')
@@ -213,21 +385,21 @@ function renderCityNodes(aqiData) {
       .text(city.id);
 
     // Event handlers
-    g.on('mouseenter', function(event) {
+    g.on('mouseenter', function (event) {
       d3.select(this).select('.city-circle')
         .attr('fill-opacity', 1)
         .attr('r', radius * 1.2);
       showTooltip(city, data, event);
     });
 
-    g.on('mouseleave', function() {
+    g.on('mouseleave', function () {
       d3.select(this).select('.city-circle')
         .attr('fill-opacity', 0.85)
         .attr('r', radius);
       hideTooltip();
     });
 
-    g.on('click', function() {
+    g.on('click', function () {
       selectCity(city, data);
     });
 
@@ -282,14 +454,14 @@ function showTooltip(city, data, event) {
   const tooltip = document.getElementById('map-tooltip');
   const container = document.getElementById('map-container');
 
-  document.getElementById('tt-id').textContent       = city.id;
-  document.getElementById('tt-city').textContent     = city.name.toUpperCase();
-  document.getElementById('tt-aqi').textContent      = data.aqi || '--';
-  document.getElementById('tt-aqi').style.color      = getAQIColor(data.aqi || 0);
-  document.getElementById('tt-cat').textContent      = getAQICategory(data.aqi || 0);
-  document.getElementById('tt-cat').style.color      = getAQIColor(data.aqi || 0);
+  document.getElementById('tt-id').textContent = city.id;
+  document.getElementById('tt-city').textContent = city.name.toUpperCase();
+  document.getElementById('tt-aqi').textContent = data.aqi || '--';
+  document.getElementById('tt-aqi').style.color = getAQIColor(data.aqi || 0);
+  document.getElementById('tt-cat').textContent = getAQICategory(data.aqi || 0);
+  document.getElementById('tt-cat').style.color = getAQIColor(data.aqi || 0);
   document.getElementById('tt-pollutant').textContent = data.pollutant || '--';
-  document.getElementById('tt-time').textContent     = data.timestamp
+  document.getElementById('tt-time').textContent = data.timestamp
     ? formatTime(new Date(data.timestamp))
     : '--:-- UTC';
 
@@ -302,21 +474,21 @@ function hideTooltip() {
 }
 
 function positionTooltip(tooltip, clientX, clientY, container) {
-  const rect   = container.getBoundingClientRect();
-  const ttW    = tooltip.offsetWidth  || 170;
-  const ttH    = tooltip.offsetHeight || 140;
+  const rect = container.getBoundingClientRect();
+  const ttW = tooltip.offsetWidth || 170;
+  const ttH = tooltip.offsetHeight || 140;
   const margin = 14;
 
   let left = clientX - rect.left + margin;
-  let top  = clientY - rect.top  - ttH / 2;
+  let top = clientY - rect.top - ttH / 2;
 
   // Clamp within container
-  if (left + ttW > rect.width)  left = clientX - rect.left - ttW - margin;
-  if (top < 0)                  top = margin;
-  if (top + ttH > rect.height)  top = rect.height - ttH - margin;
+  if (left + ttW > rect.width) left = clientX - rect.left - ttW - margin;
+  if (top < 0) top = margin;
+  if (top + ttH > rect.height) top = rect.height - ttH - margin;
 
   tooltip.style.left = `${left}px`;
-  tooltip.style.top  = `${top}px`;
+  tooltip.style.top = `${top}px`;
 }
 
 // ── CITY SELECTION ────────────────────────────────────────────────────────────

@@ -7,58 +7,58 @@
 // ── MOCK AQI DATA ─────────────────────────────────────────────────────────────
 // 7-day trend arrays (oldest → newest). Values designed for visual drama.
 const MOCK_AQI = {
-  'Los Angeles':    { aqi: 142, pollutant: 'PM2.5', trend: [148, 151, 145, 150, 147, 140, 142] },
-  'San Francisco':  { aqi: 38,  pollutant: 'O3',    trend: [42,  39,  35,  38,  41,  37,  38]  },
-  'Phoenix':        { aqi: 118, pollutant: 'PM10',  trend: [105, 112, 120, 118, 115, 119, 118]  },
-  'Las Vegas':      { aqi: 87,  pollutant: 'PM2.5', trend: [82,  85,  90,  88,  85,  88,  87]  },
-  'Seattle':        { aqi: 28,  pollutant: 'O3',    trend: [31,  29,  25,  27,  30,  28,  28]  },
-  'Portland':       { aqi: 55,  pollutant: 'PM2.5', trend: [48,  52,  58,  56,  53,  56,  55]  },
-  'Denver':         { aqi: 74,  pollutant: 'O3',    trend: [70,  72,  78,  76,  74,  73,  74]  },
-  'Salt Lake City': { aqi: 131, pollutant: 'PM2.5', trend: [120, 125, 135, 132, 129, 132, 131]  },
-  'Dallas':         { aqi: 68,  pollutant: 'O3',    trend: [65,  68,  72,  70,  67,  69,  68]  },
-  'Houston':        { aqi: 95,  pollutant: 'PM2.5', trend: [90,  93,  99,  96,  93,  96,  95]  },
-  'Austin':         { aqi: 62,  pollutant: 'O3',    trend: [58,  61,  66,  63,  60,  63,  62]  },
-  'New Orleans':    { aqi: 51,  pollutant: 'PM2.5', trend: [48,  50,  54,  52,  50,  52,  51]  },
-  'Chicago':        { aqi: 73,  pollutant: 'O3',    trend: [69,  71,  77,  74,  72,  74,  73]  },
-  'Detroit':        { aqi: 89,  pollutant: 'PM2.5', trend: [84,  87,  93,  90,  87,  90,  89]  },
-  'Cleveland':      { aqi: 82,  pollutant: 'PM2.5', trend: [78,  80,  86,  83,  80,  83,  82]  },
-  'Pittsburgh':     { aqi: 108, pollutant: 'PM2.5', trend: [100, 104, 113, 110, 107, 109, 108]  },
-  'New York':       { aqi: 91,  pollutant: 'PM2.5', trend: [86,  89,  96,  92,  89,  92,  91]  },
-  'Philadelphia':   { aqi: 79,  pollutant: 'O3',    trend: [74,  77,  83,  80,  77,  80,  79]  },
-  'Boston':         { aqi: 44,  pollutant: 'O3',    trend: [41,  43,  47,  45,  43,  44,  44]  },
-  'Miami':          { aqi: 35,  pollutant: 'O3',    trend: [33,  34,  37,  36,  34,  35,  35]  },
-  'Atlanta':        { aqi: 67,  pollutant: 'O3',    trend: [63,  65,  71,  68,  65,  68,  67]  },
-  'Charlotte':      { aqi: 56,  pollutant: 'O3',    trend: [52,  54,  59,  57,  54,  56,  56]  },
-  'Washington DC':  { aqi: 83,  pollutant: 'PM2.5', trend: [78,  81,  88,  84,  81,  84,  83]  },
-  'Baltimore':      { aqi: 97,  pollutant: 'PM2.5', trend: [92,  95,  101, 98,  95,  98,  97]  },
+  'Los Angeles': { aqi: 142, pollutant: 'PM2.5', trend: [148, 151, 145, 150, 147, 140, 142] },
+  'San Francisco': { aqi: 38, pollutant: 'O3', trend: [42, 39, 35, 38, 41, 37, 38] },
+  'Phoenix': { aqi: 118, pollutant: 'PM10', trend: [105, 112, 120, 118, 115, 119, 118] },
+  'Las Vegas': { aqi: 87, pollutant: 'PM2.5', trend: [82, 85, 90, 88, 85, 88, 87] },
+  'Seattle': { aqi: 28, pollutant: 'O3', trend: [31, 29, 25, 27, 30, 28, 28] },
+  'Portland': { aqi: 55, pollutant: 'PM2.5', trend: [48, 52, 58, 56, 53, 56, 55] },
+  'Denver': { aqi: 74, pollutant: 'O3', trend: [70, 72, 78, 76, 74, 73, 74] },
+  'Salt Lake City': { aqi: 131, pollutant: 'PM2.5', trend: [120, 125, 135, 132, 129, 132, 131] },
+  'Dallas': { aqi: 68, pollutant: 'O3', trend: [65, 68, 72, 70, 67, 69, 68] },
+  'Houston': { aqi: 95, pollutant: 'PM2.5', trend: [90, 93, 99, 96, 93, 96, 95] },
+  'Austin': { aqi: 62, pollutant: 'O3', trend: [58, 61, 66, 63, 60, 63, 62] },
+  'New Orleans': { aqi: 51, pollutant: 'PM2.5', trend: [48, 50, 54, 52, 50, 52, 51] },
+  'Chicago': { aqi: 73, pollutant: 'O3', trend: [69, 71, 77, 74, 72, 74, 73] },
+  'Detroit': { aqi: 89, pollutant: 'PM2.5', trend: [84, 87, 93, 90, 87, 90, 89] },
+  'Cleveland': { aqi: 82, pollutant: 'PM2.5', trend: [78, 80, 86, 83, 80, 83, 82] },
+  'Pittsburgh': { aqi: 108, pollutant: 'PM2.5', trend: [100, 104, 113, 110, 107, 109, 108] },
+  'New York': { aqi: 91, pollutant: 'PM2.5', trend: [86, 89, 96, 92, 89, 92, 91] },
+  'Philadelphia': { aqi: 79, pollutant: 'O3', trend: [74, 77, 83, 80, 77, 80, 79] },
+  'Boston': { aqi: 44, pollutant: 'O3', trend: [41, 43, 47, 45, 43, 44, 44] },
+  'Miami': { aqi: 35, pollutant: 'O3', trend: [33, 34, 37, 36, 34, 35, 35] },
+  'Atlanta': { aqi: 67, pollutant: 'O3', trend: [63, 65, 71, 68, 65, 68, 67] },
+  'Charlotte': { aqi: 56, pollutant: 'O3', trend: [52, 54, 59, 57, 54, 56, 56] },
+  'Washington DC': { aqi: 83, pollutant: 'PM2.5', trend: [78, 81, 88, 84, 81, 84, 83] },
+  'Baltimore': { aqi: 97, pollutant: 'PM2.5', trend: [92, 95, 101, 98, 95, 98, 97] },
 };
 
 // ── MOCK WEATHER DATA ─────────────────────────────────────────────────────────
 const MOCK_WEATHER = {
-  'Los Angeles':    { temp: 82, humidity: 32, wind: { speed: 5,  dir: 'NW' }, condition: 'Sunny' },
-  'San Francisco':  { temp: 62, humidity: 71, wind: { speed: 12, dir: 'W'  }, condition: 'Partly Cloudy' },
-  'Phoenix':        { temp: 98, humidity: 18, wind: { speed: 18, dir: 'SW' }, condition: 'Sunny' },
-  'Las Vegas':      { temp: 91, humidity: 22, wind: { speed: 8,  dir: 'S'  }, condition: 'Sunny' },
-  'Seattle':        { temp: 58, humidity: 78, wind: { speed: 7,  dir: 'SW' }, condition: 'Cloudy' },
-  'Portland':       { temp: 61, humidity: 68, wind: { speed: 6,  dir: 'W'  }, condition: 'Partly Cloudy' },
-  'Denver':         { temp: 72, humidity: 35, wind: { speed: 10, dir: 'W'  }, condition: 'Sunny' },
-  'Salt Lake City': { temp: 68, humidity: 28, wind: { speed: 4,  dir: 'NE' }, condition: 'Sunny' },
-  'Dallas':         { temp: 88, humidity: 55, wind: { speed: 9,  dir: 'S'  }, condition: 'Partly Cloudy' },
-  'Houston':        { temp: 90, humidity: 72, wind: { speed: 8,  dir: 'SE' }, condition: 'Humid' },
-  'Austin':         { temp: 86, humidity: 52, wind: { speed: 7,  dir: 'S'  }, condition: 'Sunny' },
-  'New Orleans':    { temp: 84, humidity: 78, wind: { speed: 6,  dir: 'SE' }, condition: 'Partly Cloudy' },
-  'Chicago':        { temp: 71, humidity: 58, wind: { speed: 14, dir: 'NE' }, condition: 'Partly Cloudy' },
-  'Detroit':        { temp: 68, humidity: 62, wind: { speed: 8,  dir: 'SW' }, condition: 'Cloudy' },
-  'Cleveland':      { temp: 65, humidity: 65, wind: { speed: 10, dir: 'NW' }, condition: 'Cloudy' },
-  'Pittsburgh':     { temp: 67, humidity: 60, wind: { speed: 5,  dir: 'SW' }, condition: 'Overcast' },
-  'New York':       { temp: 72, humidity: 62, wind: { speed: 9,  dir: 'SW' }, condition: 'Partly Cloudy' },
-  'Philadelphia':   { temp: 74, humidity: 60, wind: { speed: 7,  dir: 'SW' }, condition: 'Partly Cloudy' },
-  'Boston':         { temp: 65, humidity: 68, wind: { speed: 12, dir: 'NE' }, condition: 'Partly Cloudy' },
-  'Miami':          { temp: 84, humidity: 80, wind: { speed: 11, dir: 'SE' }, condition: 'Partly Cloudy' },
-  'Atlanta':        { temp: 79, humidity: 58, wind: { speed: 6,  dir: 'SW' }, condition: 'Partly Cloudy' },
-  'Charlotte':      { temp: 77, humidity: 55, wind: { speed: 5,  dir: 'SW' }, condition: 'Partly Cloudy' },
-  'Washington DC':  { temp: 76, humidity: 62, wind: { speed: 8,  dir: 'SW' }, condition: 'Partly Cloudy' },
-  'Baltimore':      { temp: 74, humidity: 63, wind: { speed: 7,  dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Los Angeles': { temp: 82, humidity: 32, wind: { speed: 5, dir: 'NW' }, condition: 'Sunny' },
+  'San Francisco': { temp: 62, humidity: 71, wind: { speed: 12, dir: 'W' }, condition: 'Partly Cloudy' },
+  'Phoenix': { temp: 98, humidity: 18, wind: { speed: 18, dir: 'SW' }, condition: 'Sunny' },
+  'Las Vegas': { temp: 91, humidity: 22, wind: { speed: 8, dir: 'S' }, condition: 'Sunny' },
+  'Seattle': { temp: 58, humidity: 78, wind: { speed: 7, dir: 'SW' }, condition: 'Cloudy' },
+  'Portland': { temp: 61, humidity: 68, wind: { speed: 6, dir: 'W' }, condition: 'Partly Cloudy' },
+  'Denver': { temp: 72, humidity: 35, wind: { speed: 10, dir: 'W' }, condition: 'Sunny' },
+  'Salt Lake City': { temp: 68, humidity: 28, wind: { speed: 4, dir: 'NE' }, condition: 'Sunny' },
+  'Dallas': { temp: 88, humidity: 55, wind: { speed: 9, dir: 'S' }, condition: 'Partly Cloudy' },
+  'Houston': { temp: 90, humidity: 72, wind: { speed: 8, dir: 'SE' }, condition: 'Humid' },
+  'Austin': { temp: 86, humidity: 52, wind: { speed: 7, dir: 'S' }, condition: 'Sunny' },
+  'New Orleans': { temp: 84, humidity: 78, wind: { speed: 6, dir: 'SE' }, condition: 'Partly Cloudy' },
+  'Chicago': { temp: 71, humidity: 58, wind: { speed: 14, dir: 'NE' }, condition: 'Partly Cloudy' },
+  'Detroit': { temp: 68, humidity: 62, wind: { speed: 8, dir: 'SW' }, condition: 'Cloudy' },
+  'Cleveland': { temp: 65, humidity: 65, wind: { speed: 10, dir: 'NW' }, condition: 'Cloudy' },
+  'Pittsburgh': { temp: 67, humidity: 60, wind: { speed: 5, dir: 'SW' }, condition: 'Overcast' },
+  'New York': { temp: 72, humidity: 62, wind: { speed: 9, dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Philadelphia': { temp: 74, humidity: 60, wind: { speed: 7, dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Boston': { temp: 65, humidity: 68, wind: { speed: 12, dir: 'NE' }, condition: 'Partly Cloudy' },
+  'Miami': { temp: 84, humidity: 80, wind: { speed: 11, dir: 'SE' }, condition: 'Partly Cloudy' },
+  'Atlanta': { temp: 79, humidity: 58, wind: { speed: 6, dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Charlotte': { temp: 77, humidity: 55, wind: { speed: 5, dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Washington DC': { temp: 76, humidity: 62, wind: { speed: 8, dir: 'SW' }, condition: 'Partly Cloudy' },
+  'Baltimore': { temp: 74, humidity: 63, wind: { speed: 7, dir: 'SW' }, condition: 'Partly Cloudy' },
 };
 
 // ── MOCK CLAUDE ANALYSIS TEXT ─────────────────────────────────────────────────
@@ -84,7 +84,7 @@ function getMockAnalysis(city, aqi, pollutant) {
 
 async function fetchCityAQI(city) {
   if (!CONFIG.AIRNOW_KEY) {
-    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [55,55,55,55,55,55,55] };
+    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [55, 55, 55, 55, 55, 55, 55] };
     return { ...mock, timestamp: new Date() };
   }
 
@@ -133,17 +133,56 @@ async function fetchWeather(city) {
     const data = await resp.json();
 
     return {
-      temp:      Math.round(data.main.temp),
-      humidity:  data.main.humidity,
+      temp: Math.round(data.main.temp),
+      humidity: data.main.humidity,
       wind: {
         speed: Math.round(data.wind.speed),
-        dir:   windDegToDir(data.wind.deg || 0),
+        dir: windDegToDir(data.wind.deg || 0),
       },
       condition: data.weather[0]?.main || 'Unknown',
     };
   } catch (err) {
     console.warn(`[Weather] Failed for ${city.name}:`, err.message);
     return MOCK_WEATHER[city.name] || { temp: 70, humidity: 50, wind: { speed: 8, dir: 'SW' }, condition: 'Clear' };
+  }
+}
+
+// Fetch AQI for an arbitrary lat/lon (click-anywhere feature)
+async function fetchLocationAQI(lat, lon) {
+  if (!CONFIG.AIRNOW_KEY) {
+    // No API key — return a generic estimate
+    return { aqi: 50, pollutant: 'PM2.5', trend: [], timestamp: new Date() };
+  }
+
+  try {
+    const url = [
+      'https://www.airnowapi.org/aq/observation/latLong/current/',
+      `?format=application/json`,
+      `&latitude=${lat}`,
+      `&longitude=${lon}`,
+      `&distance=50`,
+      `&API_KEY=${CONFIG.AIRNOW_KEY}`,
+    ].join('');
+
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    if (!data || data.length === 0) throw new Error('No data for this location');
+
+    const sorted = [...data].sort((a, b) => b.AQI - a.AQI);
+    const obs = sorted[0];
+
+    return {
+      aqi: obs.AQI,
+      pollutant: obs.ParameterName,
+      trend: [],
+      timestamp: new Date(),
+      reportingArea: obs.ReportingArea || null,
+    };
+  } catch (err) {
+    console.warn(`[AirNow] Failed for (${lat}, ${lon}):`, err.message);
+    return { aqi: null, pollutant: '--', trend: [], timestamp: new Date() };
   }
 }
 
