@@ -80,52 +80,126 @@ function getMockAnalysis(city, aqi, pollutant) {
   return `${pollutant} is the dominant pollutant driving ${city.name}'s AQI to ${aqi} under current high-pressure conditions. Wind at ${weather.wind.speed} mph from the ${weather.wind.dir} is providing limited mixing. Conditions are expected to remain stable over the next 24 hours; consult local air quality advisories for health guidance.`;
 }
 
-// ── LIVE API FUNCTIONS ────────────────────────────────────────────────────────
+// ── US AQI CALCULATION FROM RAW CONCENTRATIONS ───────────────────────────────
+// EPA breakpoints: [C_lo, C_hi, AQI_lo, AQI_hi]
 
-function generateVisualTrend(currentAqi) {
-  const trend = [];
-  let val = currentAqi;
-  for (let i = 0; i < 7; i++) {
-    trend.unshift(Math.round(val));
-    val = Math.max(0, val + (Math.random() * 12 - 6));
+const AQI_BREAKPOINTS = {
+  pm2_5: [
+    [0.0,   12.0,  0,   50],
+    [12.1,  35.4,  51,  100],
+    [35.5,  55.4,  101, 150],
+    [55.5,  150.4, 151, 200],
+    [150.5, 250.4, 201, 300],
+    [250.5, 350.4, 301, 400],
+    [350.5, 500.4, 401, 500],
+  ],
+  pm10: [
+    [0,   54,   0,   50],
+    [55,  154,  51,  100],
+    [155, 254,  101, 150],
+    [255, 354,  151, 200],
+    [355, 424,  201, 300],
+    [425, 504,  301, 400],
+    [505, 604,  401, 500],
+  ],
+  o3_ppb: [  // OWM gives µg/m³ → divide by 1.96 for ppb
+    [0,   54,   0,   50],
+    [55,  70,   51,  100],
+    [71,  85,   101, 150],
+    [86,  105,  151, 200],
+    [106, 200,  201, 300],
+  ],
+  no2_ppb: [ // OWM gives µg/m³ → divide by 1.88 for ppb
+    [0,    53,   0,   50],
+    [54,   100,  51,  100],
+    [101,  360,  101, 150],
+    [361,  649,  151, 200],
+    [650,  1249, 201, 300],
+    [1250, 1649, 301, 400],
+    [1650, 2049, 401, 500],
+  ],
+  so2_ppb: [ // OWM gives µg/m³ → divide by 2.62 for ppb
+    [0,   35,   0,   50],
+    [36,  75,   51,  100],
+    [76,  185,  101, 150],
+    [186, 304,  151, 200],
+    [305, 604,  201, 300],
+    [605, 804,  301, 400],
+    [805, 1004, 401, 500],
+  ],
+  co_ppm: [  // OWM gives µg/m³ → divide by 1145 for ppm
+    [0.0,  4.4,  0,   50],
+    [4.5,  9.4,  51,  100],
+    [9.5,  12.4, 101, 150],
+    [12.5, 15.4, 151, 200],
+    [15.5, 30.4, 201, 300],
+    [30.5, 40.4, 301, 400],
+    [40.5, 50.4, 401, 500],
+  ],
+};
+
+function calcSubIndex(C, breakpoints) {
+  for (const [Clo, Chi, Ilo, Ihi] of breakpoints) {
+    if (C >= Clo && C <= Chi) {
+      return Math.round(((Ihi - Ilo) / (Chi - Clo)) * (C - Clo) + Ilo);
+    }
   }
-  return trend;
+  return C > breakpoints.at(-1)[1] ? 500 : 0;
 }
 
+// Returns { aqi, name } for the dominant pollutant
+function componentsToUSAQI(comp) {
+  const candidates = [
+    { name: 'PM2.5', aqi: calcSubIndex(Math.trunc(comp.pm2_5 * 10) / 10,        AQI_BREAKPOINTS.pm2_5) },
+    { name: 'PM10',  aqi: calcSubIndex(Math.trunc(comp.pm10),                    AQI_BREAKPOINTS.pm10) },
+    { name: 'O3',    aqi: calcSubIndex(Math.trunc(comp.o3 / 1.96),               AQI_BREAKPOINTS.o3_ppb) },
+    { name: 'NO2',   aqi: calcSubIndex(Math.trunc(comp.no2 / 1.88),              AQI_BREAKPOINTS.no2_ppb) },
+    { name: 'SO2',   aqi: calcSubIndex(Math.trunc(comp.so2 / 2.62),              AQI_BREAKPOINTS.so2_ppb) },
+    { name: 'CO',    aqi: calcSubIndex(Math.trunc((comp.co / 1145) * 10) / 10,   AQI_BREAKPOINTS.co_ppm) },
+  ];
+  return candidates.reduce((best, c) => (c.aqi > best.aqi ? c : best));
+}
+
+// ── LIVE API FUNCTIONS (OpenWeatherMap Air Pollution) ─────────────────────────
+
 async function fetchCityAQI(city) {
-  if (!CONFIG.AIRNOW_KEY) {
+  if (!CONFIG.OPENWEATHER_KEY) {
     const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [55, 55, 55, 55, 55, 55, 55] };
     return { ...mock, timestamp: new Date() };
   }
 
   try {
-    const url = [
-      'https://www.airnowapi.org/aq/observation/latLong/current/',
-      `?format=application/json`,
-      `&latitude=${city.lat}`,
-      `&longitude=${city.lon}`,
-      `&distance=50`,
-      `&API_KEY=${CONFIG.AIRNOW_KEY}`,
-    ].join('');
+    const now          = Math.floor(Date.now() / 1000);
+    const sevenDaysAgo = now - 7 * 24 * 3600;
+    const base         = `lat=${city.lat}&lon=${city.lon}&appid=${CONFIG.OPENWEATHER_KEY}`;
 
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const [currentResp, histResp] = await Promise.all([
+      fetch(`https://api.openweathermap.org/data/2.5/air_pollution?${base}`),
+      fetch(`https://api.openweathermap.org/data/2.5/air_pollution/history?${base}&start=${sevenDaysAgo}&end=${now}`),
+    ]);
 
-    if (!data || data.length === 0) throw new Error('No data');
+    if (!currentResp.ok) throw new Error(`HTTP ${currentResp.status}`);
+    const currentData = await currentResp.json();
+    const { name: pollutant, aqi } = componentsToUSAQI(currentData.list[0].components);
 
-    // Pick parameter with highest AQI
-    const sorted = [...data].sort((a, b) => b.AQI - a.AQI);
-    const obs = sorted[0];
+    // Build 7-day daily-average trend from historical data
+    let trend = [];
+    if (histResp.ok) {
+      const histData = await histResp.json();
+      const byDay = {};
+      histData.list.forEach(entry => {
+        const day = new Date(entry.dt * 1000).toISOString().slice(0, 10);
+        if (!byDay[day]) byDay[day] = [];
+        byDay[day].push(componentsToUSAQI(entry.components).aqi);
+      });
+      trend = Object.values(byDay)
+        .slice(-7)
+        .map(dayAqis => Math.round(dayAqis.reduce((a, b) => a + b, 0) / dayAqis.length));
+    }
 
-    return {
-      aqi: obs.AQI,
-      pollutant: obs.ParameterName,
-      trend: generateVisualTrend(obs.AQI),
-      timestamp: new Date(),
-    };
+    return { aqi, pollutant, trend, timestamp: new Date() };
   } catch (err) {
-    console.warn(`[AirNow] Failed for ${city.name}:`, err.message);
+    console.warn(`[OWM] Failed for ${city.name}:`, err.message);
     const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [] };
     return { ...mock, timestamp: new Date() };
   }
@@ -159,52 +233,31 @@ async function fetchWeather(city) {
 
 // Fetch AQI for an arbitrary lat/lon (click-anywhere feature)
 async function fetchLocationAQI(lat, lon) {
-  if (!CONFIG.AIRNOW_KEY) {
-    // No API key — return a generic estimate
+  if (!CONFIG.OPENWEATHER_KEY) {
     return { aqi: 50, pollutant: 'PM2.5', trend: [], timestamp: new Date() };
   }
 
   try {
-    const url = [
-      'https://www.airnowapi.org/aq/observation/latLong/current/',
-      `?format=application/json`,
-      `&latitude=${lat}`,
-      `&longitude=${lon}`,
-      `&distance=50`,
-      `&API_KEY=${CONFIG.AIRNOW_KEY}`,
-    ].join('');
-
-    const resp = await fetch(url);
+    const resp = await fetch(
+      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${CONFIG.OPENWEATHER_KEY}`
+    );
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
-    if (!data || data.length === 0) throw new Error('No data for this location');
-
-    const sorted = [...data].sort((a, b) => b.AQI - a.AQI);
-    const obs = sorted[0];
-
-    return {
-      aqi: obs.AQI,
-      pollutant: obs.ParameterName,
-      trend: generateVisualTrend(obs.AQI),
-      timestamp: new Date(),
-      reportingArea: obs.ReportingArea || null,
-    };
+    const { name: pollutant, aqi } = componentsToUSAQI(data.list[0].components);
+    return { aqi, pollutant, trend: [], timestamp: new Date() };
   } catch (err) {
-    console.warn(`[AirNow] Failed for (${lat}, ${lon}):`, err.message);
+    console.warn(`[OWM] Failed for (${lat}, ${lon}):`, err.message);
     return { aqi: null, pollutant: '--', trend: [], timestamp: new Date() };
   }
 }
 
-// Fetch all cities — staggered to respect rate limits
+// Fetch all cities in parallel — OWM has no restrictive rate limit on free tier
 async function fetchAllAQI() {
-  const results = {};
-  for (const city of CONFIG.CITIES) {
-    const data = await fetchCityAQI(city);
-    results[city.name] = data;
-    if (CONFIG.AIRNOW_KEY) await sleep(120); // ~8 req/s, well within 500/hr
-  }
-  return results;
+  const entries = await Promise.all(
+    CONFIG.CITIES.map(async city => [city.name, await fetchCityAQI(city)])
+  );
+  return Object.fromEntries(entries);
 }
 
 // ── GEMINI AI API ─────────────────────────────────────────────────────────────
