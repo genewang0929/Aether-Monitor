@@ -141,9 +141,16 @@ async function handleMapClick(event, container) {
       adHocMarker.select('.adhoc-glow').attr('fill', color);
     }
 
+    // Spawn smoke for ad-hoc point (using world coordinates, not screen pixels)
+    if (particleSystem) {
+      particleSystem.updateCity('AD_HOC', localX, localY, aqiData.aqi, color);
+    }
+
     // Update name with reporting area if available
     if (aqiData.reportingArea) {
       location.name = aqiData.reportingArea;
+      // Also update sidebar status with the real name
+      document.getElementById('sb-selected').textContent = `SELECTED: ${location.name.toUpperCase().replace(/ /g, '_')}`;
     }
 
     // Update tooltip with real data
@@ -598,8 +605,12 @@ function onResize(container, svgEl, canvas) {
     if (!projected) return;
     city.x = projected[0];
     city.y = projected[1];
-    particleSystem.updateCity(city.name, city.x, city.y, city._aqi || 0, city._color || '#22d3ee');
+    const data = (window.APP_STATE && window.APP_STATE.aqiData && window.APP_STATE.aqiData[city.name]) || { aqi: 0 };
+    particleSystem.updateCity(city.name, city.x, city.y, data.aqi, getAQIColor(data.aqi));
   });
+
+  // Reset zoom to prevent coordinate drift after projection change
+  mapSvg.transition().duration(500).call(mapZoom.transform, d3.zoomIdentity);
 
   // Re-render city nodes
   if (window.APP_STATE?.aqiData) {

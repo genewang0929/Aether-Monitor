@@ -10,9 +10,17 @@ class ParticleSystem {
     this.emitters = new Map();  // cityName → CityEmitter
     this.running = false;
     this.frameId = null;
-    this.frameId = null;
     this.frameCount = 0;
     this.transform = { k: 1, x: 0, y: 0 };
+    
+    this.textureCache = {};
+    
+    // Auto-detect resolution for Retina screens
+    this.dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${canvas.width}px`;
+    this.canvas.style.height = `${canvas.height}px`;
+    this.canvas.width *= this.dpr;
+    this.canvas.height *= this.dpr;
   }
 
   start() {
@@ -29,9 +37,11 @@ class ParticleSystem {
   }
 
   resize(w, h) {
-    this.canvas.width = w;
-    this.canvas.height = h;
-    // Update emitter positions after resize (called from map.js)
+    this.dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${w}px`;
+    this.canvas.style.height = `${h}px`;
+    this.canvas.width = w * this.dpr;
+    this.canvas.height = h * this.dpr;
   }
 
   // Called by map.js when city data updates
@@ -59,22 +69,54 @@ class ParticleSystem {
     this.transform = transform;
   }
 
+  getTexture(color) {
+    if (this.textureCache[color]) return this.textureCache[color];
+
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const center = size / 2;
+    const grad = ctx.createRadialGradient(center, center, 0, center, center, center);
+    
+    // Parse color to rgba
+    const dummy = document.createElement('div');
+    dummy.style.color = color;
+    document.body.appendChild(dummy);
+    const rgb = getComputedStyle(dummy).color; // e.g. "rgb(255, 0, 0)"
+    document.body.removeChild(dummy);
+    
+    const rgba = rgb.replace('rgb', 'rgba').replace(')', ', 0.8)');
+    const rgbaFade = rgba.replace('0.8)', '0)');
+
+    grad.addColorStop(0, rgba);
+    grad.addColorStop(0.4, rgba.replace('0.8)', '0.3)'));
+    grad.addColorStop(1, rgbaFade);
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, size, size);
+
+    this.textureCache[color] = canvas;
+    return canvas;
+  }
+
   _loop() {
     if (!this.running) return;
     this.frameCount++;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.ctx.save();
-    this.ctx.translate(this.transform.x, this.transform.y);
-    this.ctx.scale(this.transform.k, this.transform.k);
+    const { x, y, k } = this.transform;
+    const dpr = this.dpr;
 
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
-      emitter.render(this.ctx);
+      const texture = this.getTexture(emitter.color);
+      // Final screen coordinates in logical pixels, then multiplied by DPR
+      emitter.render(this.ctx, x, y, k, texture, dpr);
     });
-
-    this.ctx.restore();
 
     this.frameId = requestAnimationFrame(() => this._loop());
   }
@@ -144,43 +186,42 @@ class CityEmitter {
   }
 
   _spawn(cfg, frame) {
-    // Emit from a much wider spread around city center
-    const spread = 20 + (this.aqi / 8);
+    // Tighter spread around city center
+    const spread = 8 + (this.aqi / 15);
     return {
       x:     this.x + (Math.random() - 0.5) * spread,
-      y:     this.y - Math.random() * 4,
-      vx:    (Math.random() - 0.5) * 0.7, // more erratic horizontal drift
-      vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)), // much slower initial jump
-      size:  cfg.size * (0.8 + Math.random() * 1.4), // larger base size
-      life:  0.8 + Math.random() * 0.4, // shorter life so they dissipate lower
-      decay: 0.005 + Math.random() * 0.005, // decays faster
+      y:     this.y - Math.random() * 2,
+      vx:    (Math.random() - 0.5) * 0.35, // much slower lateral drift
+      vy:    -(cfg.speed * (0.3 + Math.random() * 0.3)), // much slower initial jump
+      size:  cfg.size * (0.5 + Math.random() * 1.0), // slightly smaller base size
+      life:  0.8 + Math.random() * 0.5,
+      decay: 0.004 + Math.random() * 0.005,
       phase: Math.random() * Math.PI * 2,
       baseOpacity: cfg.opacity,
     };
   }
 
-  render(ctx) {
-    if (this.particles.length === 0) return;
-    const { r, g, b } = this._parsedColor;
-
-    ctx.save();
-
+  render(ctx, tx, ty, tk, texture, dpr) {
+    if (this.aqi <= 0 || !texture) return;
+    
     this.particles.forEach(p => {
       const alpha = Math.max(0, p.life * p.baseOpacity);
-      if (alpha < 0.008) return;
+      if (alpha < 0.01) return;
 
-      // Soft radial gradient per particle for smoky look
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-      grad.addColorStop(0,   `rgba(${r},${g},${b},${alpha})`);
-      grad.addColorStop(0.5, `rgba(${r},${g},${b},${alpha * 0.4})`);
-      grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+      // Logical screen coordinates
+      const logicalSX = tx + p.x * tk;
+      const logicalSY = ty + p.y * tk;
+      const logicalSS = p.size * tk * 2;
 
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
+      // Final physical pixel coordinates for the canvas buffer
+      const sx = logicalSX * dpr;
+      const sy = logicalSY * dpr;
+      const ss = logicalSS * dpr;
+
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(texture, sx - ss / 2, sy - ss / 2, ss, ss);
     });
-
-    ctx.restore();
+    
+    ctx.globalAlpha = 1.0;
   }
 }
