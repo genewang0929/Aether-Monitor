@@ -10,7 +10,9 @@ class ParticleSystem {
     this.emitters = new Map();  // cityName → CityEmitter
     this.running = false;
     this.frameId = null;
+    this.frameId = null;
     this.frameCount = 0;
+    this.transform = { k: 1, x: 0, y: 0 };
   }
 
   start() {
@@ -53,16 +55,26 @@ class ParticleSystem {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
+  setTransform(transform) {
+    this.transform = transform;
+  }
+
   _loop() {
     if (!this.running) return;
     this.frameCount++;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    this.ctx.save();
+    this.ctx.translate(this.transform.x, this.transform.y);
+    this.ctx.scale(this.transform.k, this.transform.k);
+
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
       emitter.render(this.ctx);
     });
+
+    this.ctx.restore();
 
     this.frameId = requestAnimationFrame(() => this._loop());
   }
