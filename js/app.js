@@ -249,7 +249,7 @@ async function showCityDetail(city, aqiData) {
   APP_STATE.selectedWeather = weather;
 
   // Show the panel
-  panel.style.display = 'flex';
+  panel.style.display = 'block';
 }
 
 function initCityDetail() {

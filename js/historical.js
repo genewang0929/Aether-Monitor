@@ -14,9 +14,10 @@ function enterHistoricalView() {
 
   document.body.classList.add('view-historical');
 
-  // Show historical panel, hide nodes panel
+  // Show historical panel, hide floating city detail
   document.getElementById('historical-panel').style.display = 'flex';
-  document.querySelector('.nodes-panel').style.display = 'none';
+  document.getElementById('city-detail').style.display = 'none';
+  document.querySelector('.float-telemetry').style.display = 'none';
 
   // Show timeline bar
   document.querySelector('.timeline-bar').style.display = 'flex';
@@ -58,9 +59,9 @@ function exitHistoricalView() {
 
   document.body.classList.remove('view-historical');
 
-  // Hide historical panel, show nodes panel
+  // Hide historical panel, restore floating telemetry
   document.getElementById('historical-panel').style.display = 'none';
-  document.querySelector('.nodes-panel').style.display = 'flex';
+  document.querySelector('.float-telemetry').style.display = 'block';
 
   // Hide timeline bar
   document.querySelector('.timeline-bar').style.display = 'none';

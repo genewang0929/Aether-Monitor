@@ -124,54 +124,8 @@
       <div class="scanlines" aria-hidden="true"></div>
     </main>
 
-    <!-- Right active nodes panel -->
-    <aside class="nodes-panel">
-      <div class="panel-hdr">
-        <span class="panel-title">NODE_DETAIL</span>
-        <span class="panel-badge" id="node-count">24</span>
-      </div>
+    <!-- (right sidebar removed — city detail and telemetry are now floating windows) -->
 
-      <!-- Selected city detail (hidden until a city is clicked) -->
-      <div class="city-detail" id="city-detail" style="display:none">
-        <div class="cd-header">
-          <span class="cd-label">SELECTED_NODE</span>
-          <button class="cd-close" id="cd-close" title="Close">&times;</button>
-        </div>
-        <div class="cd-rows">
-          <div class="cd-row"><span class="tw-k">LOCATION</span><span class="tw-v" id="cd-location">---</span></div>
-          <div class="cd-row"><span class="tw-k">AQI</span><span class="tw-v" id="cd-aqi">---</span></div>
-          <div class="cd-row"><span class="tw-k">TEMPERATURE</span><span class="tw-v" id="cd-temp">---</span></div>
-          <div class="cd-row"><span class="tw-k">WIND</span><span class="tw-v" id="cd-wind">---</span></div>
-          <div class="cd-row"><span class="tw-k">HUMIDITY</span><span class="tw-v" id="cd-humidity">---</span></div>
-        </div>
-        <div class="cd-buttons">
-          <button class="cd-btn cd-btn-why" id="cd-btn-why">WHY..</button>
-          <button class="cd-btn cd-btn-sol" id="cd-btn-solution">SOLUTION</button>
-        </div>
-        <div class="cd-response" id="cd-response" style="display:none">
-          <div class="cd-response-label" id="cd-response-label">ANALYSIS</div>
-          <div class="cd-response-text" id="cd-response-text"></div>
-        </div>
-      </div>
-
-      <div class="nodes-list" id="nodes-list" style="display:none">
-        <div class="nodes-placeholder">SYNCING DATA...</div>
-      </div>
-
-      <!-- Toggle button for city list -->
-      <button class="learn-more-btn" id="learn-more-btn">LEARN MORE CITY</button>
-
-      <!-- System telemetry widget -->
-      <div class="telemetry-widget">
-        <div class="tw-title">SYS_TELEMETRY</div>
-        <div class="tw-row"><span class="tw-k">API_STATUS</span><span class="tw-v amber" id="tw-api">MOCK_MODE</span>
-        </div>
-        <div class="tw-row"><span class="tw-k">LAST_SYNC</span><span class="tw-v" id="tw-sync">--:--:--</span></div>
-        <div class="tw-row"><span class="tw-k">DATA_SRC</span><span class="tw-v" id="tw-src">EPA_MOCK</span></div>
-        <div class="tw-row"><span class="tw-k">NODES_LIVE</span><span class="tw-v" id="tw-nodes">24 / 24</span></div>
-        <div class="tw-row"><span class="tw-k">NAT_AQI_AVG</span><span class="tw-v" id="tw-national">---</span></div>
-      </div>
-    </aside>
 
     <!-- Historical data panel (hidden by default, replaces nodes panel) -->
     <aside class="historical-panel" id="historical-panel" style="display:none">
@@ -216,6 +170,43 @@
         </div>
       </div>
     </aside>
+  </div>
+
+  <!-- ═══ FLOATING: City Detail (top-right) ═══ -->
+  <div class="float-city-detail" id="city-detail" style="display:none">
+    <div class="cd-header">
+      <span class="cd-label">SELECTED_NODE</span>
+      <button class="cd-close" id="cd-close" title="Close">&times;</button>
+    </div>
+    <div class="cd-rows">
+      <div class="cd-row"><span class="tw-k">LOCATION</span><span class="tw-v" id="cd-location">---</span></div>
+      <div class="cd-row"><span class="tw-k">AQI</span><span class="tw-v" id="cd-aqi">---</span></div>
+      <div class="cd-row"><span class="tw-k">TEMPERATURE</span><span class="tw-v" id="cd-temp">---</span></div>
+      <div class="cd-row"><span class="tw-k">WIND</span><span class="tw-v" id="cd-wind">---</span></div>
+      <div class="cd-row"><span class="tw-k">HUMIDITY</span><span class="tw-v" id="cd-humidity">---</span></div>
+    </div>
+    <div class="cd-buttons">
+      <button class="cd-btn cd-btn-why" id="cd-btn-why">WHY..</button>
+      <button class="cd-btn cd-btn-sol" id="cd-btn-solution">SOLUTION</button>
+    </div>
+    <div class="cd-response" id="cd-response" style="display:none">
+      <div class="cd-response-label" id="cd-response-label">ANALYSIS</div>
+      <div class="cd-response-text" id="cd-response-text"></div>
+    </div>
+    <button class="learn-more-btn" id="learn-more-btn">LEARN MORE CITY</button>
+    <div class="nodes-list" id="nodes-list" style="display:none">
+      <div class="nodes-placeholder">SYNCING DATA...</div>
+    </div>
+  </div>
+
+  <!-- ═══ FLOATING: SYS_TELEMETRY (bottom-left) ═══ -->
+  <div class="float-telemetry">
+    <div class="tw-title">SYS_TELEMETRY</div>
+    <div class="tw-row"><span class="tw-k">API_STATUS</span><span class="tw-v amber" id="tw-api">MOCK_MODE</span></div>
+    <div class="tw-row"><span class="tw-k">LAST_SYNC</span><span class="tw-v" id="tw-sync">--:--:--</span></div>
+    <div class="tw-row"><span class="tw-k">DATA_SRC</span><span class="tw-v" id="tw-src">EPA_MOCK</span></div>
+    <div class="tw-row"><span class="tw-k">NODES_LIVE</span><span class="tw-v" id="tw-nodes">24 / 24</span></div>
+    <div class="tw-row"><span class="tw-k">NAT_AQI_AVG</span><span class="tw-v" id="tw-national">---</span></div>
   </div>
 
   <!-- ═══ TIMELINE BAR (historical view only) ═══ -->
