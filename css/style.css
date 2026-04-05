@@ -340,7 +340,7 @@ body::after {
   background: var(--bg-primary);
 }
 
-#map-svg {
+#map-gl {
   position: absolute;
   top: 0;
   left: 0;

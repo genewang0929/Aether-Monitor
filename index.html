@@ -11,6 +11,8 @@
     href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Lato:wght@300;400;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
 </head>
 
 <body>
@@ -82,9 +84,9 @@
       </button>
     </aside>
 
-    <!-- Map + particle canvas -->
+    <!-- Map (MapLibre GL) -->
     <main class="map-container" id="map-container">
-      <svg id="map-svg"></svg>
+      <div id="map-gl"></div>
       <canvas id="particle-canvas"></canvas>
 
       <!-- AQI legend -->
@@ -279,17 +281,13 @@
     </div>
   </footer>
 
-  <!-- CDN Libraries -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-
   <!-- App scripts (order matters) -->
   <script src="js/env.js"
     onerror="console.warn('[env.js] Not found — using empty keys. Copy env.example.js → env.js')"></script>
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/particles.js"></script>
+  <script src="js/render3DBars.js"></script>
   <script src="js/map.js"></script>
   <script src="js/gemini.js"></script>
   <script src="js/historical-data.js"></script>

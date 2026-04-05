@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════
    AETHER MONITOR — Smoke Particle System
-   Canvas 2D API with per-city emitters.
+   Canvas 2D overlay synced with MapLibre GL map.
+   Per-city emitters positioned via map.project().
    ═══════════════════════════════════════════════ */
 
 class ParticleSystem {
@@ -10,9 +11,7 @@ class ParticleSystem {
     this.emitters = new Map();  // cityName → CityEmitter
     this.running = false;
     this.frameId = null;
-    this.frameId = null;
     this.frameCount = 0;
-    this.transform = { k: 1, x: 0, y: 0 };
   }
 
   start() {
@@ -31,32 +30,21 @@ class ParticleSystem {
   resize(w, h) {
     this.canvas.width = w;
     this.canvas.height = h;
-    // Update emitter positions after resize (called from map.js)
   }
 
-  // Called by map.js when city data updates
-  updateCity(name, x, y, aqi, color) {
+  updateCity(name, aqi, color, lngLat) {
     if (!this.emitters.has(name)) {
-      this.emitters.set(name, new CityEmitter(name, x, y, aqi, color));
+      this.emitters.set(name, new CityEmitter(name, aqi, color, lngLat));
     } else {
       const e = this.emitters.get(name);
-      e.x = x;
-      e.y = y;
+      e.lngLat = lngLat;
       e.setAQI(aqi, color);
     }
-  }
-
-  removeCity(name) {
-    this.emitters.delete(name);
   }
 
   clearAll() {
     this.emitters.clear();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  setTransform(transform) {
-    this.transform = transform;
   }
 
   _loop() {
@@ -65,30 +53,34 @@ class ParticleSystem {
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.ctx.save();
-    this.ctx.translate(this.transform.x, this.transform.y);
-    this.ctx.scale(this.transform.k, this.transform.k);
+    // Project each emitter's lng/lat → screen pixels via MapLibre
+    if (glMap) {
+      this.emitters.forEach(emitter => {
+        const pt = glMap.project(emitter.lngLat);
+        emitter.screenX = pt.x;
+        emitter.screenY = pt.y;
+      });
+    }
 
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
       emitter.render(this.ctx);
     });
 
-    this.ctx.restore();
-
     this.frameId = requestAnimationFrame(() => this._loop());
   }
 }
 
-// ── PER-CITY EMITTER ──────────────────────────────────────────────────────────
+// ── PER-CITY EMITTER ─────────────────────────────────────────────────────────
 
 class CityEmitter {
-  constructor(name, x, y, aqi, color) {
+  constructor(name, aqi, color, lngLat) {
     this.name = name;
-    this.x = x;
-    this.y = y;
     this.aqi = aqi;
     this.color = color;
+    this.lngLat = lngLat;
+    this.screenX = 0;
+    this.screenY = 0;
     this.particles = [];
     this._parsedColor = null;
     this._updateParsedColor(color);
@@ -99,7 +91,6 @@ class CityEmitter {
       this.aqi = aqi;
       this.color = color;
       this._updateParsedColor(color);
-      // Drain excess particles when AQI drops
       const cfg = this._cfg();
       if (this.particles.length > cfg.maxCount) {
         this.particles = this.particles.slice(-cfg.maxCount);
@@ -121,7 +112,7 @@ class CityEmitter {
   update(frame) {
     const cfg = this._cfg();
 
-    // Emit new particles each frame (rate-limited)
+    // Emit new particles
     const emitPerFrame = Math.max(1, Math.ceil(cfg.maxCount / 90));
     for (let i = 0; i < emitPerFrame; i++) {
       if (this.particles.length < cfg.maxCount) {
@@ -129,31 +120,28 @@ class CityEmitter {
       }
     }
 
-    // Update + filter dead particles
+    // Update positions (offsets from screen center)
     const t = frame * 0.012;
     this.particles = this.particles.filter(p => {
-      // Slightly increasingly rapid deceleration or lateral drift
-      p.x += p.vx + Math.sin(t + p.phase) * 0.2;
-      p.y += p.vy;
-      p.vy += 0.005; // Stronger gravity drag to prevent it from flying too high
-      // Particles expand dramatically as they rise
+      p.ox += p.vx + Math.sin(t + p.phase) * 0.2;
+      p.oy += p.vy;
+      p.vy += 0.005;
       p.size += 0.05;
       p.life -= p.decay;
       return p.life > 0;
     });
   }
 
-  _spawn(cfg, frame) {
-    // Emit from a much wider spread around city center
-    const spread = 20 + (this.aqi / 8);
+  _spawn(cfg) {
+    const spread = 14 + (this.aqi / 10);
     return {
-      x:     this.x + (Math.random() - 0.5) * spread,
-      y:     this.y - Math.random() * 4,
-      vx:    (Math.random() - 0.5) * 0.7, // more erratic horizontal drift
-      vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)), // much slower initial jump
-      size:  cfg.size * (0.8 + Math.random() * 1.4), // larger base size
-      life:  0.8 + Math.random() * 0.4, // shorter life so they dissipate lower
-      decay: 0.005 + Math.random() * 0.005, // decays faster
+      ox:    (Math.random() - 0.5) * spread,   // offset from screen center
+      oy:    -Math.random() * 4,
+      vx:    (Math.random() - 0.5) * 0.7,
+      vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)),
+      size:  cfg.size * (0.8 + Math.random() * 1.4),
+      life:  0.8 + Math.random() * 0.4,
+      decay: 0.005 + Math.random() * 0.005,
       phase: Math.random() * Math.PI * 2,
       baseOpacity: cfg.opacity,
     };
@@ -162,25 +150,25 @@ class CityEmitter {
   render(ctx) {
     if (this.particles.length === 0) return;
     const { r, g, b } = this._parsedColor;
-
-    ctx.save();
+    const sx = this.screenX;
+    const sy = this.screenY;
 
     this.particles.forEach(p => {
       const alpha = Math.max(0, p.life * p.baseOpacity);
       if (alpha < 0.008) return;
 
-      // Soft radial gradient per particle for smoky look
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      const px = sx + p.ox;
+      const py = sy + p.oy;
+
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size);
       grad.addColorStop(0,   `rgba(${r},${g},${b},${alpha})`);
       grad.addColorStop(0.5, `rgba(${r},${g},${b},${alpha * 0.4})`);
       grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
 
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
       ctx.fill();
     });
-
-    ctx.restore();
   }
 }
