@@ -1,22 +1,22 @@
 /* ═══════════════════════════════════════════════
-   AETHER MONITOR — Claude AI Analysis Panel
+   AETHER MONITOR — Gemini AI Analysis Panel
    ═══════════════════════════════════════════════ */
 
-let claudePanelOpen = false;
+let geminiPanelOpen = false;
 
 // ── PANEL TOGGLE ─────────────────────────────────────────────────────────────
 
-function initClaudePanel() {
-  const panel = document.getElementById('claude-panel');
+function initGeminiPanel() {
+  const panel = document.getElementById('gemini-panel');
   const toggleBtn = document.getElementById('cp-collapse-btn');
   const header = document.querySelector('.cp-header');
-  const askBtn = document.getElementById('claude-ask-btn');
-  const input = document.getElementById('claude-input');
+  const askBtn = document.getElementById('gemini-ask-btn');
+  const input = document.getElementById('gemini-input');
 
   // Toggle on header click
   header.addEventListener('click', (e) => {
     // Don't collapse when clicking input or button
-    if (e.target.closest('#claude-input') || e.target.closest('#claude-ask-btn')) return;
+    if (e.target.closest('#gemini-input') || e.target.closest('#gemini-ask-btn')) return;
     togglePanel();
   });
 
@@ -30,21 +30,21 @@ function initClaudePanel() {
 }
 
 function togglePanel(forceOpen) {
-  const panel = document.getElementById('claude-panel');
+  const panel = document.getElementById('gemini-panel');
   const layout = document.querySelector('.main-layout');
 
   if (forceOpen !== undefined) {
-    claudePanelOpen = forceOpen;
+    geminiPanelOpen = forceOpen;
   } else {
-    claudePanelOpen = !claudePanelOpen;
+    geminiPanelOpen = !geminiPanelOpen;
   }
 
-  if (claudePanelOpen) {
+  if (geminiPanelOpen) {
     panel.classList.add('open');
-    layout.classList.add('claude-open');
+    layout.classList.add('gemini-open');
   } else {
     panel.classList.remove('open');
-    layout.classList.remove('claude-open');
+    layout.classList.remove('gemini-open');
   }
 }
 
@@ -52,7 +52,7 @@ function togglePanel(forceOpen) {
 
 async function triggerAnalysis(city, aqiData) {
   // Open panel if collapsed
-  if (!claudePanelOpen) togglePanel(true);
+  if (!geminiPanelOpen) togglePanel(true);
 
   // Show city bar
   const cityBar = document.getElementById('cp-city-bar');
@@ -76,24 +76,24 @@ async function triggerAnalysis(city, aqiData) {
         `${weatherData.temp}°F · ${weatherData.wind.speed}mph ${weatherData.wind.dir} · ${weatherData.humidity}% RH`;
     }
 
-    // Fetch Claude analysis
-    const analysis = await fetchClaudeAnalysis(city, aqiData, weatherData);
+    // Fetch Gemini analysis
+    const analysis = await fetchGeminiAnalysis(city, aqiData, weatherData);
 
     showResponse(analysis);
   } catch (err) {
     showResponse('Analysis temporarily unavailable. Please try again.');
-    console.error('[Claude Panel]', err);
+    console.error('[Gemini Panel]', err);
   }
 }
 
 async function handleQuery() {
-  const input = document.getElementById('claude-input');
+  const input = document.getElementById('gemini-input');
   const question = input.value.trim();
   if (!question) return;
 
   input.value = '';
 
-  if (!claudePanelOpen) togglePanel(true);
+  if (!geminiPanelOpen) togglePanel(true);
 
   // Clear city bar for free-form query
   const cityBar = document.getElementById('cp-city-bar');
@@ -102,7 +102,7 @@ async function handleQuery() {
   showLoading();
 
   try {
-    const response = await fetchClaudeQuery(question, window.APP_STATE?.aqiData || {});
+    const response = await fetchGeminiQuery(question, window.APP_STATE?.aqiData || {});
     showResponse(response);
   } catch (err) {
     showResponse('Query failed. Please check your API key or try again.');
@@ -150,7 +150,7 @@ function typewrite(el, text, delay = 15) {
 // ── NATIONAL SUMMARY (on load) ────────────────────────────────────────────────
 
 async function showNationalSummary(aqiData) {
-  if (!claudePanelOpen) return;  // Only show if panel is open
+  if (!geminiPanelOpen) return;  // Only show if panel is open
 
   const cities = CONFIG.CITIES;
   const values = cities.map(c => (aqiData[c.name]?.aqi || 50));
@@ -166,8 +166,8 @@ async function showNationalSummary(aqiData) {
 
   await sleep(600);
 
-  const summary = CONFIG.CLAUDE_KEY
-    ? await fetchClaudeQuery(
+  const summary = CONFIG.GEMINI_KEY
+    ? await fetchGeminiQuery(
       `Give me a brief national air quality summary. National average AQI today is ${avg}.`,
       aqiData
     )

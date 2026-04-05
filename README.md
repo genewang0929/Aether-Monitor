@@ -2,7 +2,7 @@
 
 A real-time air quality telemetry dashboard for the United States. Built as a pure frontend application — no build step, no server required.
 
-![Aether Monitor — Air Quality Telemetry](https://img.shields.io/badge/status-active-22d3ee?style=flat-square) ![Tech](https://img.shields.io/badge/stack-vanilla_JS_·_D3_·_Claude_AI-7c3aed?style=flat-square)
+![Aether Monitor — Air Quality Telemetry](https://img.shields.io/badge/status-active-22d3ee?style=flat-square) ![Tech](https://img.shields.io/badge/stack-vanilla_JS_·_D3_·_Gemini_AI-7c3aed?style=flat-square)
 
 ---
 
@@ -12,7 +12,7 @@ A real-time air quality telemetry dashboard for the United States. Built as a pu
 - **Live Particle System** — Ambient particle density and speed scale with the local AQI, providing an immediate visual sense of air quality
 - **AQI Telemetry** — Real-time (or mock) Air Quality Index data per city via EPA AirNow API, with 7-day trend history
 - **Weather Context** — Temperature, humidity, and wind data per node via OpenWeatherMap API
-- **Aether Intelligence** — Claude AI panel that explains pollution causes, meteorological context, and health implications for any selected city or free-form query
+- **Aether Intelligence** — Gemini AI panel that explains pollution causes, meteorological context, and health implications for any selected city or free-form query
 - **Timeline Controls** — Historical / Live / Forecast mode switcher with a scrubber bar
 - **City Search** — Search by city name or ZIP code to jump to a node
 - **Mock Mode** — Fully functional offline with realistic mock data — no API keys needed to run
@@ -25,7 +25,7 @@ A real-time air quality telemetry dashboard for the United States. Built as a pu
 |---|---|
 | Map rendering | D3.js v7 + TopoJSON |
 | Animation | GSAP 3 |
-| AI analysis | Anthropic Claude API (claude-sonnet) |
+| AI analysis | Anthropic Gemini API (gemini-sonnet) |
 | AQI data | EPA AirNow API |
 | Weather data | OpenWeatherMap API |
 | Fonts | Bebas Neue, Space Mono, Lato |
@@ -41,10 +41,10 @@ Aether-Monitor/
 │   └── style.css       # All styles — dark terminal aesthetic, animations, responsive layout
 ├── js/
 │   ├── config.js       # API keys, city list, AQI utilities (color, category, particle config)
-│   ├── api.js          # Data layer — AirNow, OpenWeather, and Claude API calls with mock fallbacks
+│   ├── api.js          # Data layer — AirNow, OpenWeather, and Gemini API calls with mock fallbacks
 │   ├── map.js          # D3 map rendering, city nodes, hover tooltips, click handlers
 │   ├── particles.js    # Canvas particle system, AQI-driven density and speed
-│   ├── claude.js       # Claude AI panel — toggle, analysis trigger, typewriter response display
+│   ├── gemini.js       # Gemini AI panel — toggle, analysis trigger, typewriter response display
 │   └── app.js          # App bootstrap, state management, polling loop, UI wiring
 └── data/               # (reserved for local GeoJSON / static datasets)
 ```
@@ -80,7 +80,7 @@ Open `js/config.js` and fill in your API keys:
 const CONFIG = {
   AIRNOW_KEY:      'your_key_here',   // https://www.airnowapi.org/account/request/
   OPENWEATHER_KEY: 'your_key_here',   // https://openweathermap.org/api
-  CLAUDE_KEY:      'your_key_here',   // https://console.anthropic.com/
+  GEMINI_KEY:      'your_key_here',   // https://console.anthropic.com/
 };
 ```
 

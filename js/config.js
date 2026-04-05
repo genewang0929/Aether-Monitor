@@ -8,13 +8,13 @@ const _ENV = window.ENV || {};
 
 const CONFIG = {
   // ── API KEYS (loaded from env.js) ──────────────
-  AIRNOW_KEY: _ENV.AIRNOW_KEY || "",
-  OPENWEATHER_KEY: _ENV.OPENWEATHER_KEY || "",
-  GEMINI_KEY: _ENV.GEMINI_KEY || "",
+  AIRNOW_KEY: _ENV.AIRNOW_KEY || '',
+  OPENWEATHER_KEY: _ENV.OPENWEATHER_KEY || '',
+  GEMINI_KEY: _ENV.GEMINI_KEY || '',
 
   // ── SETTINGS ─────────────────────────────────
-  POLL_INTERVAL_MS: 5 * 60 * 1000, // 5-minute live refresh
-  GEMINI_MODEL: "gemini-2.5-flash",
+  POLL_INTERVAL_MS: 5 * 60 * 1000,   // 5-minute live refresh
+  GEMINI_MODEL: 'gemini-2.5-flash',
   GEMINI_MAX_TOKENS: 800,
 
   // ── CITIES ───────────────────────────────────

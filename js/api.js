@@ -61,7 +61,7 @@ const MOCK_WEATHER = {
   'Baltimore': { temp: 74, humidity: 63, wind: { speed: 7, dir: 'SW' }, condition: 'Partly Cloudy' },
 };
 
-// ── MOCK CLAUDE ANALYSIS TEXT ─────────────────────────────────────────────────
+// ── MOCK GEMINI ANALYSIS TEXT ─────────────────────────────────────────────────
 const MOCK_ANALYSIS = {
   'Los Angeles': 'A persistent nocturnal temperature inversion is trapping vehicle exhaust and secondary PM2.5 in the Los Angeles Basin, holding AQI at 142 — above the USG threshold. Santa Ana wind patterns are forecast to reverse within 48 hours, which should flush the basin and drive AQI to Moderate levels.',
   'Phoenix': 'Southwest winds at 18 mph are advecting coarse PM10 dust from Sonoran Desert soils and active construction zones northwest of the city, pushing AQI to 118. Ongoing drought conditions (soil moisture at 8% of normal) limit natural dust suppression; expect gradual improvement after an approaching Pacific low brings moisture.',
@@ -82,6 +82,16 @@ function getMockAnalysis(city, aqi, pollutant) {
 
 // ── LIVE API FUNCTIONS ────────────────────────────────────────────────────────
 
+function generateVisualTrend(currentAqi) {
+  const trend = [];
+  let val = currentAqi;
+  for (let i = 0; i < 7; i++) {
+    trend.unshift(Math.round(val));
+    val = Math.max(0, val + (Math.random() * 12 - 6));
+  }
+  return trend;
+}
+
 async function fetchCityAQI(city) {
   if (!CONFIG.AIRNOW_KEY) {
     const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [55, 55, 55, 55, 55, 55, 55] };
@@ -94,7 +104,7 @@ async function fetchCityAQI(city) {
       `?format=application/json`,
       `&latitude=${city.lat}`,
       `&longitude=${city.lon}`,
-      `&distance=25`,
+      `&distance=50`,
       `&API_KEY=${CONFIG.AIRNOW_KEY}`,
     ].join('');
 
@@ -111,7 +121,7 @@ async function fetchCityAQI(city) {
     return {
       aqi: obs.AQI,
       pollutant: obs.ParameterName,
-      trend: [],   // historical trend requires AQS API
+      trend: generateVisualTrend(obs.AQI),
       timestamp: new Date(),
     };
   } catch (err) {
@@ -176,7 +186,7 @@ async function fetchLocationAQI(lat, lon) {
     return {
       aqi: obs.AQI,
       pollutant: obs.ParameterName,
-      trend: [],
+      trend: generateVisualTrend(obs.AQI),
       timestamp: new Date(),
       reportingArea: obs.ReportingArea || null,
     };
@@ -197,9 +207,9 @@ async function fetchAllAQI() {
   return results;
 }
 
-// ── CLAUDE AI API ─────────────────────────────────────────────────────────────
+// ── GEMINI AI API ─────────────────────────────────────────────────────────────
 
-const CLAUDE_SYSTEM_PROMPT = `You are Aether Monitor's atmospheric intelligence system. You analyze US air quality data and explain pollution events in clear, human-readable terms.
+const GEMINI_SYSTEM_PROMPT = `You are Aether Monitor's atmospheric intelligence system. You analyze US air quality data and explain pollution events in clear, human-readable terms.
 
 When given data, you:
 1. Identify the PRIMARY cause of the pollution level (wildfire smoke, industrial emissions, vehicle traffic, weather inversions, agricultural burning, dust storms)
@@ -214,8 +224,8 @@ Response format:
 - End with one health or trend implication
 - Tone: precise, like a scientist briefing a journalist`;
 
-async function fetchClaudeAnalysis(city, aqiData, weatherData) {
-  if (!CONFIG.CLAUDE_KEY) {
+async function fetchGeminiAnalysis(city, aqiData, weatherData) {
+  if (!CONFIG.GEMINI_KEY) {
     // Simulate a brief delay for realism
     await sleep(800 + Math.random() * 600);
     return getMockAnalysis(city, aqiData.aqi, aqiData.pollutant);
@@ -235,19 +245,21 @@ Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', 
 Explain why the AQI is at this level and what to expect.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': CONFIG.CLAUDE_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true',
       },
       body: JSON.stringify({
-        model: CONFIG.CLAUDE_MODEL,
-        max_tokens: CONFIG.CLAUDE_MAX_TOKENS,
-        system: CLAUDE_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
+        systemInstruction: {
+          parts: [{ text: GEMINI_SYSTEM_PROMPT }]
+        },
+        contents: [
+          { role: 'user', parts: [{ text: userMessage }] }
+        ],
+        generationConfig: {
+          maxOutputTokens: CONFIG.GEMINI_MAX_TOKENS,
+        }
       }),
     });
 
@@ -257,17 +269,17 @@ Explain why the AQI is at this level and what to expect.`;
     }
 
     const data = await resp.json();
-    return data.content[0]?.text || 'Analysis unavailable.';
+    return data.candidates[0]?.content?.parts[0]?.text || 'Analysis unavailable.';
   } catch (err) {
-    console.error('[Claude]', err.message);
+    console.error('[Gemini]', err.message);
     return getMockAnalysis(city, aqiData.aqi, aqiData.pollutant);
   }
 }
 
-async function fetchClaudeQuery(question, aqiSnapshot) {
-  if (!CONFIG.CLAUDE_KEY) {
+async function fetchGeminiQuery(question, aqiSnapshot) {
+  if (!CONFIG.GEMINI_KEY) {
     await sleep(900 + Math.random() * 500);
-    return `[MOCK] Real-time Claude analysis is available once you add your API key in js/config.js. The question "${question}" would be answered using current AQI data across all 24 monitored US cities.`;
+    return `[MOCK] Real-time Gemini analysis is available once you add your API key in js/config.js. The question "${question}" would be answered using current AQI data across all 24 monitored US cities.`;
   }
 
   const nationAvg = Math.round(
@@ -287,27 +299,29 @@ Most polluted cities: ${context}
 Date: ${new Date().toLocaleDateString()}`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': CONFIG.CLAUDE_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-calls': 'true',
       },
       body: JSON.stringify({
-        model: CONFIG.CLAUDE_MODEL,
-        max_tokens: CONFIG.CLAUDE_MAX_TOKENS,
-        system: CLAUDE_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
+        systemInstruction: {
+          parts: [{ text: GEMINI_SYSTEM_PROMPT }]
+        },
+        contents: [
+          { role: 'user', parts: [{ text: userMessage }] }
+        ],
+        generationConfig: {
+          maxOutputTokens: CONFIG.GEMINI_MAX_TOKENS,
+        }
       }),
     });
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    return data.content[0]?.text || 'Analysis unavailable.';
+    return data.candidates[0]?.content?.parts[0]?.text || 'Analysis unavailable.';
   } catch (err) {
-    console.error('[Claude Query]', err.message);
+    console.error('[Gemini Query]', err.message);
     return getMockAnalysis({ name: 'the requested area' }, nationAvg, 'PM2.5');
   }
 }
