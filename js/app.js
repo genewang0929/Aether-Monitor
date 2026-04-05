@@ -71,9 +71,9 @@ async function loadAndRender() {
     updateStatusBar();
 
     // Update data source indicator
-    document.getElementById('tw-src').textContent = CONFIG.AIRNOW_KEY ? 'EPA_AIRNOW' : 'EPA_MOCK';
-    document.getElementById('tw-api').textContent = CONFIG.AIRNOW_KEY ? 'LIVE' : 'MOCK_MODE';
-    document.getElementById('tw-api').className   = `tw-v ${CONFIG.AIRNOW_KEY ? 'green' : 'amber'}`;
+    document.getElementById('tw-src').textContent = CONFIG.OPENWEATHER_KEY ? 'OWM_LIVE' : 'OWM_MOCK';
+    document.getElementById('tw-api').textContent = CONFIG.OPENWEATHER_KEY ? 'LIVE' : 'MOCK_MODE';
+    document.getElementById('tw-api').className   = `tw-v ${CONFIG.OPENWEATHER_KEY ? 'green' : 'amber'}`;
 
   } catch (err) {
     console.error('[App] Data load failed:', err);

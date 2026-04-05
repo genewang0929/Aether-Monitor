@@ -132,29 +132,28 @@ class CityEmitter {
     // Update + filter dead particles
     const t = frame * 0.012;
     this.particles = this.particles.filter(p => {
-      // Lateral drift via sine wave (simulates air currents)
-      p.x += p.vx + Math.sin(t + p.phase) * 0.12;
+      // Slightly increasingly rapid deceleration or lateral drift
+      p.x += p.vx + Math.sin(t + p.phase) * 0.2;
       p.y += p.vy;
-      // Slight deceleration as particle rises (buoyancy effect)
-      p.vy += 0.004;
-      // Particles expand slightly as they cool
-      p.size += 0.012;
+      p.vy += 0.005; // Stronger gravity drag to prevent it from flying too high
+      // Particles expand dramatically as they rise
+      p.size += 0.05;
       p.life -= p.decay;
       return p.life > 0;
     });
   }
 
   _spawn(cfg, frame) {
-    // Emit from a small spread around city center
-    const spread = 5 + (this.aqi / 50);
+    // Emit from a much wider spread around city center
+    const spread = 20 + (this.aqi / 8);
     return {
       x:     this.x + (Math.random() - 0.5) * spread,
       y:     this.y - Math.random() * 4,
-      vx:    (Math.random() - 0.5) * 0.25,
-      vy:    -(cfg.speed * (0.4 + Math.random() * 0.8)),
-      size:  cfg.size * (0.4 + Math.random() * 0.8),
-      life:  0.7 + Math.random() * 0.3,
-      decay: 0.004 + Math.random() * 0.007,
+      vx:    (Math.random() - 0.5) * 0.7, // more erratic horizontal drift
+      vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)), // much slower initial jump
+      size:  cfg.size * (0.8 + Math.random() * 1.4), // larger base size
+      life:  0.8 + Math.random() * 0.4, // shorter life so they dissipate lower
+      decay: 0.005 + Math.random() * 0.005, // decays faster
       phase: Math.random() * Math.PI * 2,
       baseOpacity: cfg.opacity,
     };
