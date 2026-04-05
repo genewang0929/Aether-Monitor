@@ -4,7 +4,7 @@
 
 const US_TOPO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
 
-let mapSvg, mapProjection, mapPath, cityGroup;
+let mapSvg, mapContentGroup, mapZoom, mapProjection, mapPath, cityGroup;
 let particleSystem;
 let selectedCity = null;
 
@@ -17,8 +17,18 @@ async function initMap() {
 
   const { w, h } = getContainerSize(container);
 
-  // Init SVG
-  mapSvg = d3.select(svgEl).attr('width', w).attr('height', h);
+  // Init SVG and Zoom
+  mapZoom = d3.zoom()
+    .scaleExtent([1, 10])
+    .on('zoom', (event) => {
+      if (mapContentGroup) mapContentGroup.attr('transform', event.transform);
+      if (particleSystem) particleSystem.setTransform(event.transform);
+    });
+
+  mapSvg = d3.select(svgEl)
+    .attr('width', w)
+    .attr('height', h)
+    .call(mapZoom);
 
   // Init particle canvas
   canvas.width = w;
@@ -72,8 +82,10 @@ async function handleMapClick(event, container) {
   const px = event.clientX - rect.left;
   const py = event.clientY - rect.top;
 
-  // Invert pixel → [lon, lat]
-  const coords = mapProjection.invert([px, py]);
+  // Invert pixel → local group xy → [lon, lat]
+  const transform = d3.zoomTransform(mapSvg.node());
+  const [localX, localY] = transform.invert([px, py]);
+  const coords = mapProjection.invert([localX, localY]);
   if (!coords) return; // Outside US bounds
 
   const [lon, lat] = coords;
@@ -139,6 +151,9 @@ async function handleMapClick(event, container) {
 
     // Trigger Gemini analysis
     triggerAnalysis(location, aqiData);
+
+    // Zoom to ad-hoc location
+    flyToPoint(location.lon, location.lat);
 
   } catch (err) {
     console.error('[Map] Ad-hoc click failed:', err);
@@ -255,8 +270,11 @@ function renderBaseMap(us, w, h) {
     .attr('width', w).attr('height', h)
     .attr('fill', 'url(#map-bg-gradient)');
 
+  // Group for zoomable elements
+  mapContentGroup = mapSvg.append('g').attr('class', 'map-content');
+
   // State fills
-  mapSvg.append('g').attr('class', 'states-group')
+  mapContentGroup.append('g').attr('class', 'states-group')
     .selectAll('path')
     .data(topojson.feature(us, us.objects.states).features)
     .join('path')
@@ -267,7 +285,7 @@ function renderBaseMap(us, w, h) {
     .attr('stroke-width', 0.6);
 
   // State borders (mesh)
-  mapSvg.append('path')
+  mapContentGroup.append('path')
     .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
     .attr('fill', 'none')
     .attr('stroke', '#1e3a5f')
@@ -275,7 +293,7 @@ function renderBaseMap(us, w, h) {
     .attr('d', mapPath);
 
   // Nation outline
-  mapSvg.append('path')
+  mapContentGroup.append('path')
     .datum(topojson.feature(us, us.objects.states))
     .attr('fill', 'none')
     .attr('stroke', '#1e3a5f')
@@ -283,7 +301,7 @@ function renderBaseMap(us, w, h) {
     .attr('d', mapPath);
 
   // City nodes group (rendered on top)
-  cityGroup = mapSvg.append('g').attr('class', 'cities');
+  cityGroup = mapContentGroup.append('g').attr('class', 'cities');
 }
 
 // ── SVG FILTERS ───────────────────────────────────────────────────────────────
@@ -399,7 +417,8 @@ function renderCityNodes(aqiData) {
       hideTooltip();
     });
 
-    g.on('click', function () {
+    g.on('click', function (event) {
+      event.stopPropagation(); // prevent ad-hoc map click
       selectCity(city, data);
     });
 
@@ -513,8 +532,34 @@ function selectCity(city, data) {
   const nodeCard = document.querySelector(`.node-card[data-city="${city.name}"]`);
   if (nodeCard) nodeCard.classList.add('selected');
 
+  // Map Zoom
+  flyToPoint(city.lon, city.lat);
+
   // Trigger Gemini analysis
   triggerAnalysis(city, data);
+}
+
+// ── MAP ZOOMING Helpers ───────────────────────────────────────────────────────
+
+function flyToPoint(lon, lat) {
+  const container = document.getElementById('map-container');
+  const { w, h } = getContainerSize(container);
+  
+  const projected = mapProjection([lon, lat]);
+  if (!projected) return;
+  const [px, py] = projected;
+
+  const scale = 4.5;
+  const tx = w / 2 - px * scale;
+  const ty = h / 2 - py * scale;
+
+  mapSvg.transition()
+    .duration(1200)
+    .ease(d3.easeCubicOut)
+    .call(
+      mapZoom.transform, 
+      d3.zoomIdentity.translate(tx, ty).scale(scale)
+    );
 }
 
 // ── RESIZE ────────────────────────────────────────────────────────────────────
