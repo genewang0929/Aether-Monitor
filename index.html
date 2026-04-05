@@ -124,10 +124,48 @@
 
       <!-- Scanline overlay -->
       <div class="scanlines" aria-hidden="true"></div>
+
+      <!-- Speech bubble for historical "What happened?" -->
+      <div class="hist-bubble" id="hist-bubble" style="display:none">
+        <button class="hist-bubble-close" id="hist-bubble-close">&times;</button>
+        <div class="hist-bubble-text" id="hist-bubble-text"></div>
+        <div class="hist-bubble-tail"></div>
+      </div>
     </main>
 
     <!-- (right sidebar removed — city detail and telemetry are now floating windows) -->
 
+
+    <!-- Historical dashboard (landing screen before entering a city demo) -->
+    <div class="hist-dashboard" id="hist-dashboard" style="display:none">
+      <div class="hd-content">
+        <div class="hd-header">
+          <span class="hd-icon">◈</span>
+          <h2 class="hd-title">HISTORICAL DATA EXPLORER</h2>
+        </div>
+        <p class="hd-desc">
+          Explore cached air quality data over the past 30 days. Scrub through time to see how AQI, temperature, wind, and weather conditions evolved — with sonified drum patterns that reflect pollution intensity in real-time.
+        </p>
+        <div class="hd-cards">
+          <button class="hd-card hd-card-active" id="hd-phoenix">
+            <div class="hd-card-badge">AVAILABLE</div>
+            <div class="hd-card-city">PHOENIX, AZ</div>
+            <div class="hd-card-detail">30-day AQI + weather · PM10 dust events · Sonified timeline</div>
+            <div class="hd-card-action">LAUNCH DEMO →</div>
+          </button>
+          <div class="hd-card hd-card-locked">
+            <div class="hd-card-badge">COMING SOON</div>
+            <div class="hd-card-city">LOS ANGELES, CA</div>
+            <div class="hd-card-detail">PM2.5 basin inversions · Wildfire smoke tracking</div>
+          </div>
+          <div class="hd-card hd-card-locked">
+            <div class="hd-card-badge">COMING SOON</div>
+            <div class="hd-card-city">NEW YORK, NY</div>
+            <div class="hd-card-detail">Urban corridor emissions · Seasonal ozone patterns</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Historical data panel (hidden by default, replaces nodes panel) -->
     <aside class="historical-panel" id="historical-panel" style="display:none">
@@ -154,6 +192,8 @@
           <div class="tw-row"><span class="tw-k">WIND</span><span class="tw-v" id="hist-wind">---</span></div>
           <div class="tw-row"><span class="tw-k">CONDITION</span><span class="tw-v" id="hist-condition">---</span></div>
         </div>
+
+        <button class="hist-why-btn" id="hist-why-btn">WHAT HAPPENED?</button>
 
         <div class="hist-section">
           <div class="hist-label">30-DAY AQI TREND</div>
@@ -213,6 +253,17 @@
 
   <!-- ═══ TIMELINE BAR (historical view only) ═══ -->
   <div class="timeline-bar" style="display:none">
+    <button class="tl-play-btn" id="tl-play-btn" title="Play / Pause">▶</button>
+    <div class="dancer" id="dancer" style="display:none">
+      <div class="dancer-body">
+        <div class="dancer-head"><span class="dancer-face" id="dancer-face">😄</span></div>
+        <div class="dancer-torso"></div>
+        <div class="dancer-arm dancer-arm-l"></div>
+        <div class="dancer-arm dancer-arm-r"></div>
+        <div class="dancer-leg dancer-leg-l"></div>
+        <div class="dancer-leg dancer-leg-r"></div>
+      </div>
+    </div>
     <div class="tl-scrubber">
       <span class="tl-edge-label" id="tl-left">---</span>
       <div class="tl-track-wrap">
@@ -286,6 +337,7 @@
     onerror="console.warn('[env.js] Not found — using empty keys. Copy env.example.js → env.js')"></script>
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/geodome.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/render3DBars.js"></script>
   <script src="js/map.js"></script>

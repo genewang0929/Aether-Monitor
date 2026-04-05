@@ -71,6 +71,18 @@ class ParticleSystem {
       emitter.screenY = pt.y;
     });
 
+    // Tick geodome shared rotation
+    geodomeTick();
+
+    // Draw geodomes first (under smoke)
+    this.emitters.forEach(emitter => {
+      if (emitter.aqi > 0) {
+        const domeSize = Math.max(10, emitter._cfg().size * 3) * zoomScale;
+        drawGeodome(this.ctx, emitter.screenX, emitter.screenY, domeSize, emitter.color);
+      }
+    });
+
+    // Draw smoke particles on top
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
       emitter.render(this.ctx, zoomScale);

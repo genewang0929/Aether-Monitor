@@ -46,7 +46,7 @@ async function initMap() {
     data: emptyFC(),
   });
 
-  // Glow halo layer
+  // Glow halo layer (hidden — geodomes replace the visual)
   glMap.addLayer({
     id: CITIES_GLOW,
     type: 'circle',
@@ -54,12 +54,11 @@ async function initMap() {
     paint: {
       'circle-radius': ['*', ['get', 'radius'], 1.6],
       'circle-color': ['get', 'color'],
-      'circle-opacity': 0.12,
-      'circle-blur': 1,
+      'circle-opacity': 0,
     },
   });
 
-  // Main city circles
+  // City circles (invisible — kept for click/hover hit detection)
   glMap.addLayer({
     id: CITIES_CIRCLE,
     type: 'circle',
@@ -67,9 +66,7 @@ async function initMap() {
     paint: {
       'circle-radius': ['get', 'radius'],
       'circle-color': ['get', 'color'],
-      'circle-opacity': 0.85,
-      'circle-stroke-color': ['get', 'color'],
-      'circle-stroke-width': 1.5,
+      'circle-opacity': 0,
     },
   });
 
@@ -175,6 +172,44 @@ function renderCityNodes(aqiData) {
   }
 }
 
+// Render only cities present in the data (used by historical mode)
+function renderCityNodesFiltered(aqiData) {
+  if (!glMap || !glMap.getSource(CITIES_SOURCE)) return;
+
+  const cities = CONFIG.CITIES.filter(c => aqiData[c.name]);
+  const geojson = {
+    type: 'FeatureCollection',
+    features: cities.map(city => {
+      const d = aqiData[city.name];
+      return {
+        type: 'Feature',
+        properties: {
+          name:      city.name,
+          id:        city.id,
+          state:     city.state,
+          aqi:       d.aqi,
+          pollutant: d.pollutant || 'PM2.5',
+          color:     getAQIColor(d.aqi),
+          radius:    getCityRadius(city.pop),
+          timestamp: d.timestamp ? new Date(d.timestamp).toISOString() : '',
+        },
+        geometry: { type: 'Point', coordinates: [city.lon, city.lat] },
+      };
+    }),
+  };
+
+  glMap.getSource(CITIES_SOURCE).setData(geojson);
+
+  // Only update particle emitters for included cities, clear the rest
+  if (particleSystem) {
+    particleSystem.clearAll();
+    cities.forEach(city => {
+      const d = aqiData[city.name];
+      particleSystem.updateCity(city.name, d.aqi, getAQIColor(d.aqi), [city.lon, city.lat]);
+    });
+  }
+}
+
 function citiesToGeoJSON(aqiData) {
   return {
     type: 'FeatureCollection',
@@ -208,6 +243,9 @@ function emptyFC() {
 // ── CLICK-ANYWHERE ───────────────────────────────────────────────────────────
 
 async function handleMapClick(e) {
+  // Disable click-anywhere in historical mode
+  if (historicalActive) return;
+
   const { lng, lat } = e.lngLat;
 
   if (lat < 24 || lat > 50 || lng < -125 || lng > -66) return;
