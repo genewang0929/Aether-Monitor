@@ -76,17 +76,18 @@ async function initMap() {
     type: 'symbol',
     source: CITIES_SOURCE,
     layout: {
-      'text-field': ['get', 'id'],
-      'text-size': 10,
-      'text-offset': [0, -1.6],
-      'text-anchor': 'bottom',
+      'text-field': ['upcase', ['get', 'name']],
+      'text-size': 11,
+      'text-offset': [0, 1.3],
+      'text-anchor': 'top',
       'text-allow-overlap': true,
+      'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
     },
     paint: {
       'text-color': ['get', 'color'],
-      'text-opacity': 0.7,
-      'text-halo-color': 'rgba(6,9,26,0.8)',
-      'text-halo-width': 1,
+      'text-opacity': 0.9,
+      'text-halo-color': 'rgba(6,9,26,0.95)',
+      'text-halo-width': 2.5,
     },
   });
 
@@ -269,7 +270,7 @@ async function handleMapClick(e) {
     .setLngLat([roundLon, roundLat])
     .addTo(glMap);
 
-  document.getElementById('sb-selected').textContent = `SELECTED: AD_HOC_${roundLat}_${Math.abs(roundLon)}`;
+  document.getElementById('sb-selected').textContent = `SELECTED: ${roundLat}°N, ${Math.abs(roundLon)}°W`;
 
   try {
     const [aqiData, weatherData] = await Promise.all([
@@ -295,7 +296,7 @@ async function handleMapClick(e) {
     // Update name with reporting area if available
     if (aqiData.reportingArea) {
       location.name = aqiData.reportingArea;
-      document.getElementById('sb-selected').textContent = `SELECTED: ${location.name.toUpperCase().replace(/ /g, '_')}`;
+      document.getElementById('sb-selected').textContent = `SELECTED: ${location.name.toUpperCase()}`;
     }
 
     flyToPoint(location.lon, location.lat);
@@ -357,8 +358,7 @@ function selectCity(city, data) {
     window.APP_STATE.selectedCityData = data;
   }
 
-  document.getElementById('sb-selected').textContent =
-    `SELECTED: ${city.id}_${city.name.toUpperCase().replace(/ /g, '_')}`;
+  document.getElementById('sb-selected').textContent = `SELECTED: ${city.name.toUpperCase()}`;
 
   document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
   const card = document.querySelector(`.node-card[data-city="${city.name}"]`);
@@ -371,7 +371,7 @@ function selectCity(city, data) {
 function deselectAllCities() {
   selectedCity = null;
   document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
-  document.getElementById('sb-selected').textContent = 'NO_NODE_SELECTED';
+  document.getElementById('sb-selected').textContent = 'NONE SELECTED';
 }
 
 // ── FLY TO ───────────────────────────────────────────────────────────────────
