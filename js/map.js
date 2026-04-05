@@ -137,7 +137,7 @@ async function handleMapClick(event, container) {
     // Update tooltip with real data
     showAdHocTooltip(location, aqiData, event);
 
-    // Trigger Claude analysis
+    // Trigger Gemini analysis
     triggerAnalysis(location, aqiData);
 
   } catch (err) {
@@ -513,7 +513,7 @@ function selectCity(city, data) {
   const nodeCard = document.querySelector(`.node-card[data-city="${city.name}"]`);
   if (nodeCard) nodeCard.classList.add('selected');
 
-  // Trigger Claude analysis
+  // Trigger Gemini analysis
   triggerAnalysis(city, data);
 }
 

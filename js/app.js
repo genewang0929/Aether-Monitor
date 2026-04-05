@@ -2,7 +2,7 @@
    AETHER MONITOR — Main Application
    ═══════════════════════════════════════════════ */
 
-// Global app state (accessible to map.js, claude.js)
+// Global app state (accessible to map.js, gemini.js)
 window.APP_STATE = {
   aqiData: {},
   mode: 'live',
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateStatus('INITIALIZING...', 'amber');
 
   // Init UI modules
-  initClaudePanel();
+  initGeminiPanel();
   initTimeline();
   initSearch();
 

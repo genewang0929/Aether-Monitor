@@ -11,5 +11,5 @@ window.ENV = {
     OPENWEATHER_KEY: '',
 
     // Get your Anthropic key at: https://console.anthropic.com/
-    CLAUDE_KEY: '',
+    GEMINI_KEY: '',
 };

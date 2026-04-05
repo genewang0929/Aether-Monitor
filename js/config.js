@@ -10,12 +10,12 @@ const CONFIG = {
   // ── API KEYS (loaded from env.js) ──────────────
   AIRNOW_KEY: _ENV.AIRNOW_KEY || '',
   OPENWEATHER_KEY: _ENV.OPENWEATHER_KEY || '',
-  CLAUDE_KEY: _ENV.CLAUDE_KEY || '',
+  GEMINI_KEY: _ENV.GEMINI_KEY || '',
 
   // ── SETTINGS ─────────────────────────────────
   POLL_INTERVAL_MS: 5 * 60 * 1000,   // 5-minute live refresh
-  CLAUDE_MODEL: 'claude-sonnet-4-5',
-  CLAUDE_MAX_TOKENS: 800,
+  GEMINI_MODEL: 'gemini-2.5-flash',
+  GEMINI_MAX_TOKENS: 800,
 
   // ── CITIES ───────────────────────────────────
   CITIES: [

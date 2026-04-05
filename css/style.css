@@ -37,8 +37,8 @@
   --sidebar-w:    50px;
   --nodes-w:      272px;
   --timeline-h:   64px;
-  --claude-h:     44px;   /* collapsed */
-  --claude-open:  170px;  /* expanded */
+  --gemini-h:     44px;   /* collapsed */
+  --gemini-open:  170px;  /* expanded */
   --status-h:     26px;
 }
 
@@ -250,12 +250,12 @@ body::after {
   flex: 1;
   overflow: hidden;
   /* height fills space between header and bottom sections */
-  height: calc(100vh - var(--header-h) - var(--timeline-h) - var(--claude-h) - var(--status-h));
+  height: calc(100vh - var(--header-h) - var(--timeline-h) - var(--gemini-h) - var(--status-h));
   transition: height 0.3s ease;
 }
 
-.main-layout.claude-open {
-  height: calc(100vh - var(--header-h) - var(--timeline-h) - var(--claude-open) - var(--status-h));
+.main-layout.gemini-open {
+  height: calc(100vh - var(--header-h) - var(--timeline-h) - var(--gemini-open) - var(--status-h));
 }
 
 /* === LEFT SIDEBAR === */
@@ -746,25 +746,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ═══════════════════════════════════════════════
-   CLAUDE AI PANEL
+   GEMINI AI PANEL
    ═══════════════════════════════════════════════ */
-.claude-panel {
+.gemini-panel {
   background: rgba(6, 9, 26, 0.97);
   border-top: 1px solid var(--border-bright);
   flex-shrink: 0;
   overflow: hidden;
   transition: height 0.3s ease;
-  height: var(--claude-h);
+  height: var(--gemini-h);
   position: relative;
   z-index: 30;
 }
 
-.claude-panel.open {
-  height: var(--claude-open);
+.gemini-panel.open {
+  height: var(--gemini-open);
 }
 
 .cp-header {
-  height: var(--claude-h);
+  height: var(--gemini-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -819,7 +819,7 @@ input[type="range"]::-moz-range-thumb {
   border-color: var(--cyan-light);
 }
 
-#claude-input {
+#gemini-input {
   width: 260px;
   padding: 5px 10px;
   font-size: 9px;
@@ -828,9 +828,9 @@ input[type="range"]::-moz-range-thumb {
   background: var(--bg-card);
 }
 
-#claude-input::placeholder { color: var(--text-secondary); }
+#gemini-input::placeholder { color: var(--text-secondary); }
 
-#claude-ask-btn {
+#gemini-ask-btn {
   padding: 5px 12px;
   font-size: 9px;
   letter-spacing: 1.5px;
@@ -840,7 +840,7 @@ input[type="range"]::-moz-range-thumb {
   transition: background 0.2s;
 }
 
-#claude-ask-btn:hover { background: rgba(245, 158, 11, 0.15); }
+#gemini-ask-btn:hover { background: rgba(245, 158, 11, 0.15); }
 
 .cp-collapse-btn {
   font-size: 10px;
@@ -850,11 +850,11 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .cp-collapse-btn:hover { color: var(--cyan-light); }
-.claude-panel.open .cp-collapse-btn { transform: rotate(180deg); }
+.gemini-panel.open .cp-collapse-btn { transform: rotate(180deg); }
 
 .cp-body {
   padding: 10px 16px;
-  height: calc(var(--claude-open) - var(--claude-h));
+  height: calc(var(--gemini-open) - var(--gemini-h));
   overflow-y: auto;
   display: flex;
   flex-direction: column;
