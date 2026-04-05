@@ -50,6 +50,10 @@ function enterPlantsView() {
   renderPlantSmoke();
   renderLeaderboard();
 
+  // Hide AQI legend to avoid overlap with leaderboard
+  const legend = document.querySelector('.aqi-legend');
+  if (legend) legend.style.display = 'none';
+
   // Reset map to US view
   if (glMap) glMap.flyTo({ center: [-97, 39], zoom: 3.6, pitch: 30, bearing: 0, duration: 1000 });
 }
@@ -71,6 +75,10 @@ function exitPlantsView() {
     if (glMap.getLayer(CITIES_GLOW)) glMap.setLayoutProperty(CITIES_GLOW, 'visibility', 'visible');
     if (glMap.getLayer(CITIES_LABEL)) glMap.setLayoutProperty(CITIES_LABEL, 'visibility', 'visible');
   }
+
+  // Restore AQI legend
+  const legend = document.querySelector('.aqi-legend');
+  if (legend) legend.style.display = '';
 
   // Restore pitch
   if (glMap) glMap.easeTo({ pitch: 50, bearing: -15, duration: 500 });
