@@ -534,7 +534,10 @@ function selectCity(city, data) {
     .attr('stroke-width', 3);
 
   selectedCity = city;
-  if (window.APP_STATE) window.APP_STATE.selectedCity = city;
+  if (window.APP_STATE) {
+    window.APP_STATE.selectedCity = city;
+    window.APP_STATE.selectedCityData = data;
+  }
 
   // Update status bar
   document.getElementById('sb-selected').textContent = `SELECTED: ${city.id}_${city.name.toUpperCase().replace(/ /g, '_')}`;
@@ -547,8 +550,8 @@ function selectCity(city, data) {
   // Map Zoom
   flyToPoint(city.lon, city.lat);
 
-  // Trigger Gemini analysis
-  triggerAnalysis(city, data);
+  // Populate city detail panel (no Gemini call — user triggers via buttons)
+  showCityDetail(city, data);
 }
 
 // ── MAP ZOOMING Helpers ───────────────────────────────────────────────────────

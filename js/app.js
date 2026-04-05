@@ -5,7 +5,8 @@
 // Global app state (accessible to map.js, gemini.js)
 window.APP_STATE = {
   aqiData: {},
-  mode: 'live',
+  mode: 'live',       // 'live' or 'historical'
+  currentView: 'network',
   selectedCity: null,
   lastSync: null,
   errorCount: 0,
@@ -18,7 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init UI modules
   initGeminiPanel();
-  initTimeline();
+  initViewSwitching();
+  initHistorical();
+  initCityDetail();
   initSearch();
 
   // Init map (async, loads TopoJSON from CDN)
@@ -46,6 +49,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── CORE DATA LOOP ────────────────────────────────────────────────────────────
 
 async function loadAndRender() {
+  // Skip live data updates while viewing historical data
+  if (APP_STATE.currentView === 'historical') return;
+
   try {
     const aqiData = await fetchAllAQI();
     APP_STATE.aqiData   = aqiData;
@@ -59,9 +65,6 @@ async function loadAndRender() {
 
     // Update telemetry widget
     updateTelemetry(aqiData);
-
-    // Update timeline date
-    updateTimelineDisplay();
 
     // Update status bar
     APP_STATE.errorCount = 0;
@@ -193,88 +196,142 @@ function updateStatusBar() {
   dot.className = `status-dot pulsing`;
 }
 
-// ── TIMELINE ──────────────────────────────────────────────────────────────────
+// ── VIEW SWITCHING ───────────────────────────────────────────────────────────
 
-function initTimeline() {
-  const slider   = document.getElementById('timeline-slider');
-  const modeBtns = document.querySelectorAll('.mode-btn');
+function initViewSwitching() {
+  const navBtns = document.querySelectorAll('.header-nav .nav-btn');
 
-  modeBtns.forEach(btn => {
+  navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      modeBtns.forEach(b => b.classList.remove('active'));
+      const view = btn.dataset.view;
+      if (view === APP_STATE.currentView) return;
+
+      navBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      APP_STATE.currentView = view;
 
-      const mode = btn.dataset.mode;
-      APP_STATE.mode = mode;
-      document.getElementById('sb-mode').textContent = `MODE: ${mode.toUpperCase()}`;
-
-      // Update slider range labels
-      if (mode === 'historical') {
-        document.getElementById('tl-left').textContent  = 'PAST';
-        document.getElementById('tl-right').textContent = 'NOW';
-        slider.value = 100;
-        slider.max = 100;
-      } else if (mode === 'forecast') {
-        document.getElementById('tl-left').textContent  = 'NOW';
-        document.getElementById('tl-right').textContent = '+72H';
-        slider.value = 0;
-        slider.max = 100;
+      if (view === 'historical') {
+        APP_STATE.mode = 'historical';
+        enterHistoricalView();
+        renderHistoricalStats();
       } else {
-        document.getElementById('tl-left').textContent  = 'LIVE';
-        document.getElementById('tl-right').textContent = 'LIVE';
-        slider.value = 100;
+        APP_STATE.mode = 'live';
+        exitHistoricalView();
       }
-
-      updateTimelineDisplay();
     });
-  });
-
-  slider.addEventListener('input', () => {
-    // In live mode, break out to historical
-    if (APP_STATE.mode === 'live' && slider.value < 100) {
-       document.querySelector('[data-mode="historical"]').click();
-       return;
-    }
-    updateTimelineDisplay();
   });
 }
 
-function updateTimelineDisplay() {
-  if (!APP_STATE.aqiData) return;
-  const slider = document.getElementById('timeline-slider');
-  const val = parseInt(slider.value, 10);
-  
-  const scrubbedData = {};
-  let targetDate = new Date(APP_STATE.lastSync || Date.now());
+// ── CITY DETAIL PANEL ────────────────────────────────────────────────────────
 
-  Object.entries(APP_STATE.aqiData).forEach(([cityName, data]) => {
-    let aqi = data.aqi;
-    
-    if (APP_STATE.mode === 'historical') {
-      const histPoints = data.trend || [];
-      if (histPoints.length > 0) {
-        const idx = Math.min(Math.floor((val / 100) * histPoints.length), histPoints.length - 1);
-        aqi = histPoints[idx] || aqi;
-        targetDate.setDate(new Date().getDate() - (histPoints.length - 1 - idx));
-      }
-    } else if (APP_STATE.mode === 'forecast') {
-      const futPoints = data.forecast || [];
-      if (futPoints.length > 0) {
-        const idx = Math.min(Math.floor((val / 100) * futPoints.length), futPoints.length - 1);
-        aqi = futPoints[idx] || aqi;
-        targetDate.setDate(new Date().getDate() + 1 + idx);
-      }
-    }
+async function showCityDetail(city, aqiData) {
+  const panel = document.getElementById('city-detail');
+  const color = getAQIColor(aqiData.aqi);
+  const category = getAQICategory(aqiData.aqi);
 
-    scrubbedData[cityName] = { ...data, aqi, trend: [] }; 
+  // Fetch weather for this city
+  const weather = await fetchWeather(city);
+
+  // Populate fields
+  document.getElementById('cd-location').textContent = `${city.name.toUpperCase()}, ${city.state}`;
+  const aqiEl = document.getElementById('cd-aqi');
+  aqiEl.textContent = `${aqiData.aqi} (${category})`;
+  aqiEl.style.color = color;
+  document.getElementById('cd-temp').textContent = `${weather.temp}°F · ${weather.condition}`;
+  document.getElementById('cd-wind').textContent = `${weather.wind.speed} MPH ${weather.wind.dir}`;
+  document.getElementById('cd-humidity').textContent = `${weather.humidity}%`;
+
+  // Clear previous response
+  document.getElementById('cd-response').style.display = 'none';
+  document.getElementById('cd-response-text').textContent = '';
+
+  // Store weather for button handlers
+  APP_STATE.selectedWeather = weather;
+
+  // Show the panel
+  panel.style.display = 'block';
+}
+
+function initCityDetail() {
+  // Close button
+  document.getElementById('cd-close').addEventListener('click', () => {
+    document.getElementById('city-detail').style.display = 'none';
+    APP_STATE.selectedCity = null;
+    APP_STATE.selectedCityData = null;
+
+    // Deselect on map
+    cityGroup?.selectAll('.city-node .city-circle').attr('stroke-width', 1.5);
+    document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
+    document.getElementById('sb-selected').textContent = 'NO_NODE_SELECTED';
   });
 
-  document.getElementById('tl-datetime').textContent = formatDateTime(targetDate);
+  // "WHY.." button — asks Gemini to briefly explain the AQI level
+  document.getElementById('cd-btn-why').addEventListener('click', async () => {
+    const city = APP_STATE.selectedCity;
+    const data = APP_STATE.selectedCityData;
+    const weather = APP_STATE.selectedWeather;
+    if (!city || !data) return;
 
-  APP_STATE.scrubbedData = scrubbedData;
-  updateScrubbedMap(scrubbedData);
-  renderNodesPanel(scrubbedData);
-  updateTelemetry(scrubbedData);
+    const responseEl = document.getElementById('cd-response');
+    const textEl = document.getElementById('cd-response-text');
+    const labelEl = document.getElementById('cd-response-label');
+
+    labelEl.textContent = 'WHY..';
+    responseEl.style.display = 'block';
+    textEl.textContent = 'ANALYZING...';
+
+    const analysis = await fetchGeminiAnalysis(city, data, weather);
+    textEl.textContent = '';
+    typewriteInto(textEl, analysis);
+  });
+
+  // "SOLUTION" button — asks Gemini for pollution reduction solutions
+  document.getElementById('cd-btn-solution').addEventListener('click', async () => {
+    const city = APP_STATE.selectedCity;
+    const data = APP_STATE.selectedCityData;
+    if (!city || !data) return;
+
+    const responseEl = document.getElementById('cd-response');
+    const textEl = document.getElementById('cd-response-text');
+    const labelEl = document.getElementById('cd-response-label');
+
+    labelEl.textContent = 'SOLUTION';
+    responseEl.style.display = 'block';
+    textEl.textContent = 'ANALYZING...';
+
+    const answer = await fetchGeminiSolution(city, data);
+    textEl.textContent = '';
+    typewriteInto(textEl, answer);
+  });
+
+  // "LEARN MORE CITY" toggle
+  const learnBtn = document.getElementById('learn-more-btn');
+  const nodesList = document.getElementById('nodes-list');
+
+  learnBtn.addEventListener('click', () => {
+    const isOpen = nodesList.style.display !== 'none';
+    nodesList.style.display = isOpen ? 'none' : 'flex';
+    learnBtn.textContent = isOpen ? 'LEARN MORE CITY' : 'HIDE CITY LIST';
+  });
+}
+
+function typewriteInto(el, text, delay = 15) {
+  let i = 0;
+  el.textContent = '';
+  const cursor = document.createElement('span');
+  cursor.textContent = '\u2588';
+  cursor.style.cssText = 'opacity:1;animation:blink 1s infinite;color:var(--cyan-light);font-size:0.85em;';
+  el.appendChild(cursor);
+
+  const interval = setInterval(() => {
+    if (i < text.length) {
+      cursor.before(text.charAt(i));
+      i++;
+    } else {
+      clearInterval(interval);
+      setTimeout(() => cursor.remove(), 800);
+    }
+  }, delay);
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
