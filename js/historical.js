@@ -16,7 +16,7 @@ function enterHistoricalView() {
   historicalDashboard = true;
 
   document.getElementById('city-detail').style.display = 'none';
-  document.querySelector('.float-telemetry').style.display = 'none';
+  document.getElementById('city-detail').style.display = 'none';
   document.getElementById('hist-dashboard').style.display = 'flex';
 
   document.getElementById('sb-mode').textContent = 'MODE: HISTORICAL';
@@ -73,7 +73,7 @@ function exitHistoricalView() {
   document.getElementById('hist-dashboard').style.display = 'none';
   document.getElementById('historical-panel').style.display = 'none';
   document.getElementById('hist-bubble').style.display = 'none';
-  document.querySelector('.float-telemetry').style.display = 'block';
+  document.getElementById('hist-bubble').style.display = 'none';
 
   // Hide timeline bar
   document.querySelector('.timeline-bar').style.display = 'none';

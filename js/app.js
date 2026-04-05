@@ -63,17 +63,9 @@ async function loadAndRender() {
     // Render active nodes panel
     renderNodesPanel(aqiData);
 
-    // Update telemetry widget
-    updateTelemetry(aqiData);
-
     // Update status bar
     APP_STATE.errorCount = 0;
     updateStatusBar();
-
-    // Update data source indicator
-    document.getElementById('tw-src').textContent = CONFIG.OPENWEATHER_KEY ? 'OWM_LIVE' : 'OWM_MOCK';
-    document.getElementById('tw-api').textContent = CONFIG.OPENWEATHER_KEY ? 'LIVE' : 'MOCK_MODE';
-    document.getElementById('tw-api').className   = `tw-v ${CONFIG.OPENWEATHER_KEY ? 'green' : 'amber'}`;
 
   } catch (err) {
     console.error('[App] Data load failed:', err);
@@ -156,27 +148,6 @@ function renderSparkline(trend, color) {
   </svg>`;
 }
 
-// ── TELEMETRY WIDGET ──────────────────────────────────────────────────────────
-
-function updateTelemetry(aqiData) {
-  // National average
-  const values = Object.values(aqiData).map(d => d.aqi).filter(Boolean);
-  const avg    = values.length
-    ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-    : 0;
-
-  document.getElementById('tw-national').textContent = `${avg} (${getAQICategory(avg)})`;
-  document.getElementById('tw-national').style.color = getAQIColor(avg);
-
-  // Last sync time
-  if (APP_STATE.lastSync) {
-    document.getElementById('tw-sync').textContent = formatTime(APP_STATE.lastSync);
-  }
-
-  // Node count
-  document.getElementById('tw-nodes').textContent = `${CONFIG.CITIES.length} / ${CONFIG.CITIES.length}`;
-}
-
 // ── STATUS + UI UPDATES ───────────────────────────────────────────────────────
 
 function updateStatus(label, dotClass) {
@@ -228,6 +199,12 @@ async function showCityDetail(city, aqiData) {
   const panel = document.getElementById('city-detail');
   const color = getAQIColor(aqiData.aqi);
   const category = getAQICategory(aqiData.aqi);
+
+  // Sync state for detail panel buttons
+  if (window.APP_STATE) {
+    window.APP_STATE.selectedCity = city;
+    window.APP_STATE.selectedCityData = aqiData;
+  }
 
   // Fetch weather for this city
   const weather = await fetchWeather(city);
