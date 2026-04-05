@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initViewSwitching();
   initHistorical();
   initCityDetail();
+  initPlantsFilters();
   initSearch();
 
   // Init map (async, loads TopoJSON from CDN)
@@ -49,8 +50,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── CORE DATA LOOP ────────────────────────────────────────────────────────────
 
 async function loadAndRender() {
-  // Skip live data updates while viewing historical data
-  if (APP_STATE.currentView === 'historical') return;
+  // Skip live data updates while not on network view
+  if (APP_STATE.currentView !== 'network') return;
 
   try {
     const aqiData = await fetchAllAQI();
@@ -183,11 +184,21 @@ function initViewSwitching() {
 
       if (view === 'historical') {
         APP_STATE.mode = 'historical';
+        exitPlantsView();
         enterHistoricalView();
         renderHistoricalStats();
+      } else if (view === 'sources') {
+        APP_STATE.mode = 'sources';
+        exitHistoricalView();
+        enterPlantsView();
       } else {
         APP_STATE.mode = 'live';
         exitHistoricalView();
+        exitPlantsView();
+        // Re-render city nodes + smoke immediately
+        if (APP_STATE.aqiData) {
+          renderCityNodes(APP_STATE.aqiData);
+        }
       }
     });
   });

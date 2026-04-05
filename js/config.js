@@ -262,7 +262,9 @@ function getAQIParticleConfig(aqi) {
   if (aqi <= 100) return { maxCount: 180, size: 4.5, opacity: 0.50, speed: 0.75 };
   if (aqi <= 150) return { maxCount: 350, size: 6.0, opacity: 0.70, speed: 1.1 };
   if (aqi <= 200) return { maxCount: 600, size: 8.0, opacity: 0.85, speed: 1.4 };
-  return { maxCount: 1000, size: 10.0, opacity: 0.95, speed: 1.8 };
+  if (aqi <= 350) return { maxCount: 1000, size: 10.0, opacity: 0.95, speed: 1.8 };
+  if (aqi <= 500) return { maxCount: 1400, size: 12.0, opacity: 0.95, speed: 2.0 };
+  return { maxCount: 1800, size: 14.0, opacity: 0.95, speed: 2.2 };
 }
 
 // City radius for map nodes (scaled by population)
