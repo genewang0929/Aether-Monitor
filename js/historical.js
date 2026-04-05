@@ -70,11 +70,7 @@ function exitHistoricalView() {
   drumStop();
 
   // Reset map: zoom out and re-render all city nodes
-  if (mapSvg) {
-    mapSvg.transition()
-      .duration(800)
-      .call(mapZoom.transform, d3.zoomIdentity);
-  }
+  resetMapView();
 
   if (window.APP_STATE?.aqiData) {
     renderCityNodes(window.APP_STATE.aqiData);
@@ -172,7 +168,7 @@ function updateHistoricalDisplay(idx) {
 
 function renderHistoricalMapState(idx) {
   const d = HISTORICAL_PHOENIX[idx];
-  if (!d || !cityGroup) return;
+  if (!d) return;
 
   const phoenix = CONFIG.CITIES.find(c => c.name === 'Phoenix');
   if (!phoenix) return;

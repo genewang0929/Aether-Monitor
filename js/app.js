@@ -260,9 +260,7 @@ function initCityDetail() {
     APP_STATE.selectedCityData = null;
 
     // Deselect on map
-    cityGroup?.selectAll('.city-node .city-circle').attr('stroke-width', 1.5);
-    document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
-    document.getElementById('sb-selected').textContent = 'NO_NODE_SELECTED';
+    deselectAllCities();
   });
 
   // "WHY.." button — asks Gemini to briefly explain the AQI level
