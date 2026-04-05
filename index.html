@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AETHER MONITOR // AIR QUALITY TELEMETRY</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Lato:wght@300;400;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
   <!-- ═══ HEADER ═══ -->
@@ -35,7 +39,8 @@
         <input type="text" id="search-input" placeholder="SEARCH CITY / ZIP" autocomplete="off" spellcheck="false">
         <button id="search-btn" aria-label="Search">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
           </svg>
         </button>
       </div>
@@ -49,25 +54,30 @@
     <aside class="left-sidebar">
       <button class="sidebar-btn active" title="Network">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-          <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
-          <path d="M12 7v4M9.5 17.5l-2.5-5M14.5 17.5l2.5-5"/>
+          <circle cx="12" cy="5" r="2" />
+          <circle cx="5" cy="19" r="2" />
+          <circle cx="19" cy="19" r="2" />
+          <path d="M12 7v4M9.5 17.5l-2.5-5M14.5 17.5l2.5-5" />
         </svg>
       </button>
       <button class="sidebar-btn" title="Telemetry">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-          <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+          <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
         </svg>
       </button>
       <button class="sidebar-btn" title="Layers">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-          <polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/><polyline points="2,12 12,17 22,12"/>
+          <polygon points="12,2 2,7 12,12 22,7" />
+          <polyline points="2,17 12,22 22,17" />
+          <polyline points="2,12 12,17 22,12" />
         </svg>
       </button>
       <div class="sidebar-divider"></div>
       <button class="sidebar-btn" title="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
     </aside>
@@ -81,11 +91,14 @@
       <div class="aqi-legend">
         <div class="legend-title">AQI SCALE</div>
         <div class="legend-item"><span class="leg-dot" style="background:#22d3ee"></span><span>GOOD 0–50</span></div>
-        <div class="legend-item"><span class="leg-dot" style="background:#f59e0b"></span><span>MODERATE 51–100</span></div>
+        <div class="legend-item"><span class="leg-dot" style="background:#f59e0b"></span><span>MODERATE 51–100</span>
+        </div>
         <div class="legend-item"><span class="leg-dot" style="background:#f97316"></span><span>USG 101–150</span></div>
-        <div class="legend-item"><span class="leg-dot" style="background:#dc2626"></span><span>UNHEALTHY 151–200</span></div>
+        <div class="legend-item"><span class="leg-dot" style="background:#dc2626"></span><span>UNHEALTHY 151–200</span>
+        </div>
         <div class="legend-item"><span class="leg-dot" style="background:#9333ea"></span><span>VERY 201–300</span></div>
-        <div class="legend-item"><span class="leg-dot" style="background:#7c3aed"></span><span>HAZARDOUS 301+</span></div>
+        <div class="legend-item"><span class="leg-dot" style="background:#7c3aed"></span><span>HAZARDOUS 301+</span>
+        </div>
       </div>
 
       <!-- Hover tooltip -->
@@ -114,18 +127,45 @@
     <!-- Right active nodes panel -->
     <aside class="nodes-panel">
       <div class="panel-hdr">
-        <span class="panel-title">ACTIVE_NODES</span>
+        <span class="panel-title">NODE_DETAIL</span>
         <span class="panel-badge" id="node-count">24</span>
       </div>
 
-      <div class="nodes-list" id="nodes-list">
+      <!-- Selected city detail (hidden until a city is clicked) -->
+      <div class="city-detail" id="city-detail" style="display:none">
+        <div class="cd-header">
+          <span class="cd-label">SELECTED_NODE</span>
+          <button class="cd-close" id="cd-close" title="Close">&times;</button>
+        </div>
+        <div class="cd-rows">
+          <div class="cd-row"><span class="tw-k">LOCATION</span><span class="tw-v" id="cd-location">---</span></div>
+          <div class="cd-row"><span class="tw-k">AQI</span><span class="tw-v" id="cd-aqi">---</span></div>
+          <div class="cd-row"><span class="tw-k">TEMPERATURE</span><span class="tw-v" id="cd-temp">---</span></div>
+          <div class="cd-row"><span class="tw-k">WIND</span><span class="tw-v" id="cd-wind">---</span></div>
+          <div class="cd-row"><span class="tw-k">HUMIDITY</span><span class="tw-v" id="cd-humidity">---</span></div>
+        </div>
+        <div class="cd-buttons">
+          <button class="cd-btn cd-btn-why" id="cd-btn-why">WHY..</button>
+          <button class="cd-btn cd-btn-sol" id="cd-btn-solution">SOLUTION</button>
+        </div>
+        <div class="cd-response" id="cd-response" style="display:none">
+          <div class="cd-response-label" id="cd-response-label">ANALYSIS</div>
+          <div class="cd-response-text" id="cd-response-text"></div>
+        </div>
+      </div>
+
+      <div class="nodes-list" id="nodes-list" style="display:none">
         <div class="nodes-placeholder">SYNCING DATA...</div>
       </div>
+
+      <!-- Toggle button for city list -->
+      <button class="learn-more-btn" id="learn-more-btn">LEARN MORE CITY</button>
 
       <!-- System telemetry widget -->
       <div class="telemetry-widget">
         <div class="tw-title">SYS_TELEMETRY</div>
-        <div class="tw-row"><span class="tw-k">API_STATUS</span><span class="tw-v amber" id="tw-api">MOCK_MODE</span></div>
+        <div class="tw-row"><span class="tw-k">API_STATUS</span><span class="tw-v amber" id="tw-api">MOCK_MODE</span>
+        </div>
         <div class="tw-row"><span class="tw-k">LAST_SYNC</span><span class="tw-v" id="tw-sync">--:--:--</span></div>
         <div class="tw-row"><span class="tw-k">DATA_SRC</span><span class="tw-v" id="tw-src">EPA_MOCK</span></div>
         <div class="tw-row"><span class="tw-k">NODES_LIVE</span><span class="tw-v" id="tw-nodes">24 / 24</span></div>
@@ -170,7 +210,8 @@
             <div class="hist-stat"><span class="tw-k">AVG_AQI</span><span class="tw-v" id="hist-avg">---</span></div>
             <div class="hist-stat"><span class="tw-k">MIN_AQI</span><span class="tw-v" id="hist-min">---</span></div>
             <div class="hist-stat"><span class="tw-k">MAX_AQI</span><span class="tw-v" id="hist-max">---</span></div>
-            <div class="hist-stat"><span class="tw-k">DUST_EVENTS</span><span class="tw-v" id="hist-dust-days">---</span></div>
+            <div class="hist-stat"><span class="tw-k">DUST_EVENTS</span><span class="tw-v"
+                id="hist-dust-days">---</span></div>
           </div>
         </div>
       </div>
@@ -199,7 +240,8 @@
       </div>
       <div class="cp-header-right">
         <div class="cp-query-wrap">
-          <input type="text" id="gemini-input" placeholder="ASK ABOUT AIR QUALITY..." autocomplete="off" spellcheck="false">
+          <input type="text" id="gemini-input" placeholder="ASK ABOUT AIR QUALITY..." autocomplete="off"
+            spellcheck="false">
           <button id="gemini-ask-btn">QUERY</button>
         </div>
         <button class="cp-collapse-btn" id="cp-collapse-btn" title="Toggle panel">▲</button>
@@ -216,11 +258,14 @@
       </div>
       <div class="cp-response-area">
         <div class="cp-loading" id="cp-loading" style="display:none">
-          <div class="cp-loading-bar"><div class="cp-loading-fill"></div></div>
+          <div class="cp-loading-bar">
+            <div class="cp-loading-fill"></div>
+          </div>
           <span class="cp-loading-text">ANALYZING ATMOSPHERIC CONDITIONS<span class="blink-dots">...</span></span>
         </div>
         <div class="cp-response" id="cp-response">
-          <span class="cp-hint">// SELECT A CITY NODE ON THE MAP OR ENTER A QUERY TO GENERATE ATMOSPHERIC ANALYSIS</span>
+          <span class="cp-hint">// SELECT A CITY NODE ON THE MAP OR ENTER A QUERY TO GENERATE ATMOSPHERIC
+            ANALYSIS</span>
         </div>
       </div>
     </div>
@@ -249,14 +294,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
   <!-- App scripts (order matters) -->
-  <script src="js/env.js" onerror="console.warn('[env.js] Not found — using empty keys. Copy env.example.js → env.js')"></script>
+  <script src="js/env.js"
+    onerror="console.warn('[env.js] Not found — using empty keys. Copy env.example.js → env.js')"></script>
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/map.js"></script>
   <script src="js/gemini.js"></script>
   <script src="js/historical-data.js"></script>
+  <script src="js/drums.js"></script>
   <script src="js/historical.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

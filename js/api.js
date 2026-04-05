@@ -326,6 +326,42 @@ Date: ${new Date().toLocaleDateString()}`;
   }
 }
 
+// ── GEMINI SOLUTION QUERY ─────────────────────────────────────────────────────
+
+const SOLUTION_SYSTEM_PROMPT = `You are an environmental policy advisor. Given a city's air quality data, provide 3 concise, actionable solutions to reduce the primary pollutant. Each solution should be 1 sentence. Focus on what residents, local government, or industry can realistically do. Be specific to the city and pollutant.`;
+
+async function fetchGeminiSolution(city, aqiData) {
+  if (!CONFIG.GEMINI_KEY) {
+    await sleep(700 + Math.random() * 400);
+    const pollutant = aqiData.pollutant || 'PM2.5';
+    return `1. Reduce vehicle idling and promote public transit to cut ${pollutant} emissions from transportation.\n2. Enforce stricter industrial emission controls on facilities upwind of ${city.name}.\n3. Expand urban tree canopy coverage to naturally filter particulates and improve local air quality.`;
+  }
+
+  const userMessage = `City: ${city.name}, ${city.state}
+AQI: ${aqiData.aqi} (${getAQICategory(aqiData.aqi)})
+Primary pollutant: ${aqiData.pollutant}
+Give 3 brief, actionable solutions to reduce this pollution.`;
+
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SOLUTION_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { maxOutputTokens: 400 },
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    return data.candidates[0]?.content?.parts[0]?.text || 'Solutions unavailable.';
+  } catch (err) {
+    console.error('[Gemini Solution]', err.message);
+    return `1. Reduce vehicle emissions through expanded public transit in ${city.name}.\n2. Implement stricter controls on local industrial sources of ${aqiData.pollutant}.\n3. Increase green infrastructure and urban tree planting to filter airborne particulates.`;
+  }
+}
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
 function sleep(ms) {

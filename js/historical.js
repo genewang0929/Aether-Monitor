@@ -65,6 +65,9 @@ function exitHistoricalView() {
   // Hide timeline bar
   document.querySelector('.timeline-bar').style.display = 'none';
 
+  // Stop drums
+  drumStop();
+
   // Reset map: zoom out and re-render all city nodes
   if (mapSvg) {
     mapSvg.transition()
@@ -84,6 +87,10 @@ function exitHistoricalView() {
 
 function initHistoricalSlider() {
   const slider = document.getElementById('timeline-slider');
+  let dragging = false;
+
+  // 'input' fires on every tick while dragging — start drums here too
+  // (more reliable than mousedown on range inputs across browsers)
   slider.addEventListener('input', () => {
     if (!historicalActive) return;
     const idx = parseInt(slider.value, 10);
@@ -91,7 +98,34 @@ function initHistoricalSlider() {
     updateHistoricalDisplay(idx);
     updateChartMarker(idx);
     renderHistoricalMapState(idx);
+
+    const aqi = HISTORICAL_PHOENIX[idx]?.aqi || 0;
+
+    if (!dragging) {
+      dragging = true;
+      drumStart(aqi);
+    } else {
+      drumUpdateAQI(aqi);
+    }
   });
+
+  // 'change' fires once when the user releases the slider
+  slider.addEventListener('change', () => {
+    dragging = false;
+    drumStop();
+  });
+
+  // Safety: also stop on pointer/mouse/touch up on window
+  // (covers edge cases like dragging off the slider)
+  const stopDrag = () => {
+    if (dragging) {
+      dragging = false;
+      drumStop();
+    }
+  };
+  window.addEventListener('pointerup', stopDrag);
+  window.addEventListener('mouseup', stopDrag);
+  window.addEventListener('touchend', stopDrag);
 }
 
 // ── DATA DISPLAY ─────────────────────────────────────────────────────────────

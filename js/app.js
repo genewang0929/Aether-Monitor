@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initGeminiPanel();
   initViewSwitching();
   initHistorical();
+  initCityDetail();
   initSearch();
 
   // Init map (async, loads TopoJSON from CDN)
@@ -219,6 +220,118 @@ function initViewSwitching() {
       }
     });
   });
+}
+
+// ── CITY DETAIL PANEL ────────────────────────────────────────────────────────
+
+async function showCityDetail(city, aqiData) {
+  const panel = document.getElementById('city-detail');
+  const color = getAQIColor(aqiData.aqi);
+  const category = getAQICategory(aqiData.aqi);
+
+  // Fetch weather for this city
+  const weather = await fetchWeather(city);
+
+  // Populate fields
+  document.getElementById('cd-location').textContent = `${city.name.toUpperCase()}, ${city.state}`;
+  const aqiEl = document.getElementById('cd-aqi');
+  aqiEl.textContent = `${aqiData.aqi} (${category})`;
+  aqiEl.style.color = color;
+  document.getElementById('cd-temp').textContent = `${weather.temp}°F · ${weather.condition}`;
+  document.getElementById('cd-wind').textContent = `${weather.wind.speed} MPH ${weather.wind.dir}`;
+  document.getElementById('cd-humidity').textContent = `${weather.humidity}%`;
+
+  // Clear previous response
+  document.getElementById('cd-response').style.display = 'none';
+  document.getElementById('cd-response-text').textContent = '';
+
+  // Store weather for button handlers
+  APP_STATE.selectedWeather = weather;
+
+  // Show the panel
+  panel.style.display = 'flex';
+}
+
+function initCityDetail() {
+  // Close button
+  document.getElementById('cd-close').addEventListener('click', () => {
+    document.getElementById('city-detail').style.display = 'none';
+    APP_STATE.selectedCity = null;
+    APP_STATE.selectedCityData = null;
+
+    // Deselect on map
+    cityGroup?.selectAll('.city-node .city-circle').attr('stroke-width', 1.5);
+    document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
+    document.getElementById('sb-selected').textContent = 'NO_NODE_SELECTED';
+  });
+
+  // "WHY.." button — asks Gemini to briefly explain the AQI level
+  document.getElementById('cd-btn-why').addEventListener('click', async () => {
+    const city = APP_STATE.selectedCity;
+    const data = APP_STATE.selectedCityData;
+    const weather = APP_STATE.selectedWeather;
+    if (!city || !data) return;
+
+    const responseEl = document.getElementById('cd-response');
+    const textEl = document.getElementById('cd-response-text');
+    const labelEl = document.getElementById('cd-response-label');
+
+    labelEl.textContent = 'WHY..';
+    responseEl.style.display = 'block';
+    textEl.textContent = 'ANALYZING...';
+
+    const analysis = await fetchGeminiAnalysis(city, data, weather);
+    textEl.textContent = '';
+    typewriteInto(textEl, analysis);
+  });
+
+  // "SOLUTION" button — asks Gemini for pollution reduction solutions
+  document.getElementById('cd-btn-solution').addEventListener('click', async () => {
+    const city = APP_STATE.selectedCity;
+    const data = APP_STATE.selectedCityData;
+    if (!city || !data) return;
+
+    const responseEl = document.getElementById('cd-response');
+    const textEl = document.getElementById('cd-response-text');
+    const labelEl = document.getElementById('cd-response-label');
+
+    labelEl.textContent = 'SOLUTION';
+    responseEl.style.display = 'block';
+    textEl.textContent = 'ANALYZING...';
+
+    const answer = await fetchGeminiSolution(city, data);
+    textEl.textContent = '';
+    typewriteInto(textEl, answer);
+  });
+
+  // "LEARN MORE CITY" toggle
+  const learnBtn = document.getElementById('learn-more-btn');
+  const nodesList = document.getElementById('nodes-list');
+
+  learnBtn.addEventListener('click', () => {
+    const isOpen = nodesList.style.display !== 'none';
+    nodesList.style.display = isOpen ? 'none' : 'flex';
+    learnBtn.textContent = isOpen ? 'LEARN MORE CITY' : 'HIDE CITY LIST';
+  });
+}
+
+function typewriteInto(el, text, delay = 15) {
+  let i = 0;
+  el.textContent = '';
+  const cursor = document.createElement('span');
+  cursor.textContent = '\u2588';
+  cursor.style.cssText = 'opacity:1;animation:blink 1s infinite;color:var(--cyan-light);font-size:0.85em;';
+  el.appendChild(cursor);
+
+  const interval = setInterval(() => {
+    if (i < text.length) {
+      cursor.before(text.charAt(i));
+      i++;
+    } else {
+      clearInterval(interval);
+      setTimeout(() => cursor.remove(), 800);
+    }
+  }, delay);
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
