@@ -44,6 +44,16 @@ class ParticleSystem {
     }
   }
 
+  // Mark an emitter as "selected" for visual feedback
+  setSelected(name) {
+    this.selectedName = name || null;
+  }
+
+  // Burst mode: emit all particles at once, then let them fade away
+  burstAll() {
+    this.emitters.forEach(emitter => emitter.burst());
+  }
+
   clearAll() {
     this.emitters.clear();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -75,9 +85,12 @@ class ParticleSystem {
     geodomeTick();
 
     // Draw geodomes first (under smoke)
+    const selName = this.selectedName;
     this.emitters.forEach(emitter => {
       if (emitter.aqi > 0) {
-        const domeSize = Math.max(10, emitter._cfg().size * 3) * zoomScale;
+        const isSelected = emitter.name === selName;
+        const baseSize = Math.max(10, emitter._cfg().size * 3) * zoomScale;
+        const domeSize = isSelected ? baseSize * 1.5 : baseSize;
         drawGeodome(this.ctx, emitter.screenX, emitter.screenY, domeSize, emitter.color);
       }
     });
@@ -103,6 +116,8 @@ class CityEmitter {
     this.screenX = 0;
     this.screenY = 0;
     this.particles = [];
+    this.burstMode = false;   // when true, no continuous emission
+    this.burstDone = false;   // burst already fired
     this._parsedColor = null;
     this._updateParsedColor(color);
   }
@@ -130,22 +145,37 @@ class CityEmitter {
     return getAQIParticleConfig(this.aqi);
   }
 
+  burst() {
+    this.burstMode = true;
+    this.burstDone = false;
+    this.particles = [];
+    const cfg = this._cfg();
+    // Spawn all particles at once
+    const count = Math.min(cfg.maxCount, 500);
+    for (let i = 0; i < count; i++) {
+      this.particles.push(this._spawn(cfg));
+    }
+  }
+
   update(frame) {
     const cfg = this._cfg();
 
-    const emitPerFrame = Math.max(1, Math.ceil(cfg.maxCount / 90));
-    for (let i = 0; i < emitPerFrame; i++) {
-      if (this.particles.length < cfg.maxCount) {
-        this.particles.push(this._spawn(cfg));
+    // In burst mode: don't emit new particles, just let existing ones fade
+    if (!this.burstMode) {
+      const emitPerFrame = Math.max(1, Math.ceil(cfg.maxCount / 250));
+      for (let i = 0; i < emitPerFrame; i++) {
+        if (this.particles.length < cfg.maxCount) {
+          this.particles.push(this._spawn(cfg));
+        }
       }
     }
 
-    const t = frame * 0.012;
+    const t = frame * 0.008;
     this.particles = this.particles.filter(p => {
-      p.ox += p.vx + Math.sin(t + p.phase) * 0.2;
+      p.ox += p.vx + Math.sin(t + p.phase) * 0.12;
       p.oy += p.vy;
-      p.vy += 0.005;
-      p.size += 0.05;
+      p.vy += 0.003;
+      p.size += 0.03;
       p.life -= p.decay;
       return p.life > 0;
     });
@@ -153,14 +183,15 @@ class CityEmitter {
 
   _spawn(cfg) {
     const spread = 14 + (this.aqi / 10);
+    const fast = this.burstMode;
     return {
       ox:    (Math.random() - 0.5) * spread,
-      oy:    -Math.random() * 4,
-      vx:    (Math.random() - 0.5) * 0.7,
-      vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)),
-      size:  cfg.size * (0.8 + Math.random() * 1.4),
-      life:  0.8 + Math.random() * 0.4,
-      decay: 0.005 + Math.random() * 0.005,
+      oy:    -Math.random() * 3,
+      vx:    (Math.random() - 0.5) * (fast ? 0.6 : 0.4),
+      vy:    -(cfg.speed * (fast ? (0.5 + Math.random() * 0.4) : (0.3 + Math.random() * 0.3))),
+      size:  cfg.size * (0.6 + Math.random() * 1.0),
+      life:  fast ? (0.8 + Math.random() * 0.4) : (1.2 + Math.random() * 0.6),
+      decay: fast ? (0.006 + Math.random() * 0.004) : (0.003 + Math.random() * 0.003),
       phase: Math.random() * Math.PI * 2,
       baseOpacity: cfg.opacity,
     };

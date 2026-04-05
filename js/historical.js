@@ -11,8 +11,8 @@ let autoplayPlaying = false;
 
 // ── VIEW ACTIVATION ──────────────────────────────────────────────────────────
 
-// Step 1: Show dashboard landing screen
-function enterHistoricalView() {
+// Step 1: Show dashboard landing screen (load data in background)
+async function enterHistoricalView() {
   historicalDashboard = true;
 
   document.getElementById('city-detail').style.display = 'none';
@@ -20,11 +20,27 @@ function enterHistoricalView() {
   document.getElementById('hist-dashboard').style.display = 'flex';
 
   document.getElementById('sb-mode').textContent = 'MODE: HISTORICAL';
+
+  // Start loading data so it's ready when user clicks Phoenix
+  await loadHistoricalData();
 }
 
 // Step 2: Launch a specific city demo (called from dashboard card click)
-function launchPhoenixDemo() {
+async function launchPhoenixDemo() {
   if (historicalActive) return;
+
+  // Ensure data is loaded — wait if still fetching
+  if (!HISTORICAL_LOADED) {
+    const btn = document.getElementById('hd-phoenix');
+    btn.querySelector('.hd-card-action').textContent = 'LOADING DATA...';
+    await loadHistoricalData();
+    btn.querySelector('.hd-card-action').textContent = 'LAUNCH DEMO →';
+  }
+
+  if (HISTORICAL_PHOENIX.length === 0) {
+    console.error('[Historical] No data available');
+    return;
+  }
   historicalActive = true;
   historicalDashboard = false;
 
@@ -44,10 +60,11 @@ function launchPhoenixDemo() {
   slider.value = maxIdx;
   historicalIndex = maxIdx;
 
-  // Update edge labels
-  const first = new Date(HISTORICAL_PHOENIX[0].timestamp);
-  document.getElementById('tl-left').textContent = formatShortDate(first);
-  document.getElementById('tl-right').textContent = 'NOW';
+  // Update edge labels with actual date range
+  const firstDate = HISTORICAL_PHOENIX[0].date;
+  const lastDate = HISTORICAL_PHOENIX[maxIdx].date;
+  document.getElementById('tl-left').textContent = firstDate;
+  document.getElementById('tl-right').textContent = lastDate;
 
   // Render chart
   renderHistoricalChart();
@@ -59,7 +76,8 @@ function launchPhoenixDemo() {
   const phoenix = CONFIG.CITIES.find(c => c.name === 'Phoenix');
   if (phoenix) flyToPoint(phoenix.lon, phoenix.lat);
 
-  // Render Phoenix-only node on map
+  // Render stats and map
+  renderHistoricalStats();
   renderHistoricalMapState(maxIdx);
 }
 
@@ -209,7 +227,7 @@ function autoplayStart() {
     const aqi = HISTORICAL_PHOENIX[historicalIndex]?.aqi || 0;
     drumUpdateAQI(aqi);
     updateDancer(aqi);
-  }, 150);
+  }, 50);
 }
 
 function autoplayPause() {
@@ -229,15 +247,14 @@ function updateHistoricalDisplay(idx) {
   const d = HISTORICAL_PHOENIX[idx];
   if (!d) return;
 
-  const date = new Date(d.timestamp);
   const color = getAQIColor(d.aqi);
   const category = getAQICategory(d.aqi);
 
-  // Date/time in timeline bar
-  document.getElementById('tl-datetime').textContent = formatDateTime(date);
+  // Date in timeline bar
+  document.getElementById('tl-datetime').textContent = d.date;
 
   // Historical panel fields
-  document.getElementById('hist-date').textContent = formatDateTime(date);
+  document.getElementById('hist-date').textContent = d.date;
   document.getElementById('hist-date').style.color = 'var(--cyan-light)';
 
   const aqiEl = document.getElementById('hist-aqi');
@@ -250,9 +267,9 @@ function updateHistoricalDisplay(idx) {
 
   document.getElementById('hist-pollutant').textContent = d.pollutant;
   document.getElementById('hist-pollutant').style.color = color;
-  document.getElementById('hist-temp').textContent = `${d.temp}°F`;
-  document.getElementById('hist-humidity').textContent = `${d.humidity}%`;
-  document.getElementById('hist-wind').textContent = `${d.wind.speed} MPH ${d.wind.dir}`;
+  document.getElementById('hist-temp').textContent = d.temp !== null ? `${d.temp}°F` : '--';
+  document.getElementById('hist-humidity').textContent = d.humidity !== null ? `${d.humidity}%` : '--';
+  document.getElementById('hist-wind').textContent = d.wind.speed !== null ? `${d.wind.speed} MPH ${d.wind.dir}` : '--';
   document.getElementById('hist-condition').textContent = d.condition.toUpperCase();
 
   // Condition color

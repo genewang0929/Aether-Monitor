@@ -34,7 +34,7 @@
       <span class="nav-sep">|</span>
       <button class="nav-btn" data-view="historical">HISTORICAL</button>
       <span class="nav-sep">|</span>
-      <button class="nav-btn" data-view="analysis">ANALYSIS</button>
+      <button class="nav-btn" data-view="sources">SOURCES</button>
     </nav>
     <div class="header-right">
       <div class="search-wrap">
@@ -48,6 +48,27 @@
       </div>
     </div>
   </header>
+
+  <!-- ═══ PLANTS FILTER BAR (hidden by default) ═══ -->
+  <div class="plants-filter-bar" id="plants-filter-bar" style="display:none">
+    <div class="pf-group">
+      <button class="pf-fuel active" data-fuel="COAL"><span class="pf-dot" style="background:#cc2200"></span>COAL</button>
+      <button class="pf-fuel active" data-fuel="GAS"><span class="pf-dot" style="background:#ff8c00"></span>GAS</button>
+      <button class="pf-fuel active" data-fuel="DATA_CTR"><span class="pf-dot" style="background:#7c3aed"></span>AI / DATA CTR</button>
+    </div>
+    <div class="pf-group">
+      <button class="pf-count" data-count="TOP10">TOP 10</button>
+      <button class="pf-count active" data-count="ALL">ALL</button>
+    </div>
+    <div class="pf-group pf-period-group">
+      <span class="pf-label">PERIOD:</span>
+      <div class="pf-period-slider-wrap">
+        <input type="range" id="pf-period-slider" class="pf-period-slider" min="0" max="6" value="2">
+      </div>
+      <span class="pf-period-label" id="pf-period-label">2022</span>
+    </div>
+    <button class="pf-replay" id="pf-replay">VIEW AGAIN</button>
+  </div>
 
   <!-- ═══ MAIN LAYOUT ═══ -->
   <div class="main-layout">
@@ -150,7 +171,7 @@
           <button class="hd-card hd-card-active" id="hd-phoenix">
             <div class="hd-card-badge">AVAILABLE</div>
             <div class="hd-card-city">PHOENIX, AZ</div>
-            <div class="hd-card-detail">30-day AQI + weather · PM10 dust events · Sonified timeline</div>
+            <div class="hd-card-detail">2020–2026 daily AQI + weather · PM2.5 trends · Sonified timeline</div>
             <div class="hd-card-action">LAUNCH DEMO →</div>
           </button>
           <div class="hd-card hd-card-locked">
@@ -243,6 +264,18 @@
 
 
 
+  <!-- ═══ FLOATING: Top Polluters Leaderboard (left, sources view) ═══ -->
+  <div class="plants-leaderboard" id="plants-leaderboard" style="display:none">
+    <div class="lb-header">
+      <span class="lb-title">☣ TOP POLLUTERS</span>
+      <span class="lb-sub">// US POWER PLANTS</span>
+    </div>
+    <div class="lb-list" id="plants-lb-list"></div>
+  </div>
+
+  <!-- ═══ FLOATING: Plant Detail (right, sources view) ═══ -->
+  <div class="float-plant-detail" id="plant-detail" style="display:none"></div>
+
   <!-- ═══ TIMELINE BAR (historical view only) ═══ -->
   <div class="timeline-bar" style="display:none">
     <button class="tl-play-btn" id="tl-play-btn" title="Play / Pause">▶</button>
@@ -334,10 +367,13 @@
   <script src="js/render3DBars.js"></script>
   <script src="js/map.js"></script>
   <script src="js/gemini.js"></script>
-  <script src="js/historical-data.js"></script>
+  <script src="js/plants-data.js"></script>
+  <script src="js/plants-history.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/historical-data.js?v=2"></script>
   <script src="js/drums.js"></script>
-  <script src="js/historical.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/historical.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
 </body>
 
 </html>

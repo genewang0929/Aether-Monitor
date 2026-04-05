@@ -58,13 +58,13 @@ async function initMap() {
     },
   });
 
-  // City circles (invisible — kept for click/hover hit detection)
+  // City circles (invisible but large — generous click/hover hit area)
   glMap.addLayer({
     id: CITIES_CIRCLE,
     type: 'circle',
     source: CITIES_SOURCE,
     paint: {
-      'circle-radius': ['get', 'radius'],
+      'circle-radius': ['*', ['get', 'radius'], 2.5],
       'circle-color': ['get', 'color'],
       'circle-opacity': 0,
     },
@@ -244,8 +244,8 @@ function emptyFC() {
 // ── CLICK-ANYWHERE ───────────────────────────────────────────────────────────
 
 async function handleMapClick(e) {
-  // Disable click-anywhere in historical mode
-  if (historicalActive) return;
+  // Disable click-anywhere in historical/sources mode
+  if (historicalActive || plantsLayerActive) return;
 
   const { lng, lat } = e.lngLat;
 
@@ -358,6 +358,9 @@ function selectCity(city, data) {
     window.APP_STATE.selectedCityData = data;
   }
 
+  // Visual feedback: enlarge selected geodome
+  if (particleSystem) particleSystem.setSelected(city.name);
+
   document.getElementById('sb-selected').textContent = `SELECTED: ${city.name.toUpperCase()}`;
 
   document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
@@ -370,6 +373,7 @@ function selectCity(city, data) {
 
 function deselectAllCities() {
   selectedCity = null;
+  if (particleSystem) particleSystem.setSelected(null);
   document.querySelectorAll('.node-card').forEach(el => el.classList.remove('selected'));
   document.getElementById('sb-selected').textContent = 'NONE SELECTED';
 }
