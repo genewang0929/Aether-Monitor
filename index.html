@@ -26,7 +26,7 @@
     <nav class="header-nav">
       <button class="nav-btn active" data-view="network">NETWORK</button>
       <span class="nav-sep">|</span>
-      <button class="nav-btn" data-view="telemetry">TELEMETRY</button>
+      <button class="nav-btn" data-view="historical">HISTORICAL</button>
       <span class="nav-sep">|</span>
       <button class="nav-btn" data-view="analysis">ANALYSIS</button>
     </nav>
@@ -132,17 +132,55 @@
         <div class="tw-row"><span class="tw-k">NAT_AQI_AVG</span><span class="tw-v" id="tw-national">---</span></div>
       </div>
     </aside>
+
+    <!-- Historical data panel (hidden by default, replaces nodes panel) -->
+    <aside class="historical-panel" id="historical-panel" style="display:none">
+      <div class="panel-hdr">
+        <span class="panel-title">HISTORICAL_DATA</span>
+        <span class="panel-badge">PHOENIX, AZ</span>
+      </div>
+
+      <div class="hist-detail">
+        <div class="hist-section">
+          <div class="hist-label">TIMESTAMP</div>
+          <div class="hist-date" id="hist-date">---</div>
+        </div>
+
+        <div class="hist-aqi-block">
+          <span class="hist-aqi" id="hist-aqi">---</span>
+          <span class="hist-cat" id="hist-cat">---</span>
+        </div>
+
+        <div class="hist-rows">
+          <div class="tw-row"><span class="tw-k">POLLUTANT</span><span class="tw-v" id="hist-pollutant">---</span></div>
+          <div class="tw-row"><span class="tw-k">TEMP</span><span class="tw-v" id="hist-temp">---</span></div>
+          <div class="tw-row"><span class="tw-k">HUMIDITY</span><span class="tw-v" id="hist-humidity">---</span></div>
+          <div class="tw-row"><span class="tw-k">WIND</span><span class="tw-v" id="hist-wind">---</span></div>
+          <div class="tw-row"><span class="tw-k">CONDITION</span><span class="tw-v" id="hist-condition">---</span></div>
+        </div>
+
+        <div class="hist-section">
+          <div class="hist-label">30-DAY AQI TREND</div>
+          <div class="hist-chart" id="hist-chart"></div>
+        </div>
+
+        <div class="hist-section">
+          <div class="hist-label">30-DAY SUMMARY</div>
+          <div class="hist-stats">
+            <div class="hist-stat"><span class="tw-k">AVG_AQI</span><span class="tw-v" id="hist-avg">---</span></div>
+            <div class="hist-stat"><span class="tw-k">MIN_AQI</span><span class="tw-v" id="hist-min">---</span></div>
+            <div class="hist-stat"><span class="tw-k">MAX_AQI</span><span class="tw-v" id="hist-max">---</span></div>
+            <div class="hist-stat"><span class="tw-k">DUST_EVENTS</span><span class="tw-v" id="hist-dust-days">---</span></div>
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
 
-  <!-- ═══ TIMELINE BAR ═══ -->
-  <div class="timeline-bar">
-    <div class="tl-modes">
-      <button class="mode-btn" data-mode="historical">HIST</button>
-      <button class="mode-btn active" data-mode="live">LIVE</button>
-      <button class="mode-btn" data-mode="forecast">FCST</button>
-    </div>
+  <!-- ═══ TIMELINE BAR (historical view only) ═══ -->
+  <div class="timeline-bar" style="display:none">
     <div class="tl-scrubber">
-      <span class="tl-edge-label" id="tl-left">PAST</span>
+      <span class="tl-edge-label" id="tl-left">---</span>
       <div class="tl-track-wrap">
         <input type="range" id="timeline-slider" min="0" max="100" value="100">
       </div>
@@ -217,6 +255,8 @@
   <script src="js/particles.js"></script>
   <script src="js/map.js"></script>
   <script src="js/gemini.js"></script>
+  <script src="js/historical-data.js"></script>
+  <script src="js/historical.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

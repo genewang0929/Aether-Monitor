@@ -5,7 +5,8 @@
 // Global app state (accessible to map.js, gemini.js)
 window.APP_STATE = {
   aqiData: {},
-  mode: 'live',
+  mode: 'live',       // 'live' or 'historical'
+  currentView: 'network',
   selectedCity: null,
   lastSync: null,
   errorCount: 0,
@@ -18,7 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Init UI modules
   initGeminiPanel();
-  initTimeline();
+  initViewSwitching();
+  initHistorical();
   initSearch();
 
   // Init map (async, loads TopoJSON from CDN)
@@ -46,6 +48,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── CORE DATA LOOP ────────────────────────────────────────────────────────────
 
 async function loadAndRender() {
+  // Skip live data updates while viewing historical data
+  if (APP_STATE.currentView === 'historical') return;
+
   try {
     const aqiData = await fetchAllAQI();
     APP_STATE.aqiData   = aqiData;
@@ -59,9 +64,6 @@ async function loadAndRender() {
 
     // Update telemetry widget
     updateTelemetry(aqiData);
-
-    // Update timeline date
-    updateTimelineDisplay();
 
     // Update status bar
     APP_STATE.errorCount = 0;
@@ -193,52 +195,30 @@ function updateStatusBar() {
   dot.className = `status-dot pulsing`;
 }
 
-// ── TIMELINE ──────────────────────────────────────────────────────────────────
+// ── VIEW SWITCHING ───────────────────────────────────────────────────────────
 
-function initTimeline() {
-  const slider   = document.getElementById('timeline-slider');
-  const modeBtns = document.querySelectorAll('.mode-btn');
+function initViewSwitching() {
+  const navBtns = document.querySelectorAll('.header-nav .nav-btn');
 
-  modeBtns.forEach(btn => {
+  navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      modeBtns.forEach(b => b.classList.remove('active'));
+      const view = btn.dataset.view;
+      if (view === APP_STATE.currentView) return;
+
+      navBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      APP_STATE.currentView = view;
 
-      const mode = btn.dataset.mode;
-      APP_STATE.mode = mode;
-      document.getElementById('sb-mode').textContent = `MODE: ${mode.toUpperCase()}`;
-
-      // Update slider range labels
-      if (mode === 'historical') {
-        document.getElementById('tl-left').textContent  = '2020';
-        document.getElementById('tl-right').textContent = 'TODAY';
-        slider.value = 100;
-      } else if (mode === 'forecast') {
-        document.getElementById('tl-left').textContent  = 'NOW';
-        document.getElementById('tl-right').textContent = '+72H';
-        slider.value = 0;
+      if (view === 'historical') {
+        APP_STATE.mode = 'historical';
+        enterHistoricalView();
+        renderHistoricalStats();
       } else {
-        document.getElementById('tl-left').textContent  = 'PAST';
-        document.getElementById('tl-right').textContent = 'NOW';
-        slider.value = 100;
+        APP_STATE.mode = 'live';
+        exitHistoricalView();
       }
-
-      updateTimelineDisplay();
     });
   });
-
-  slider.addEventListener('input', () => {
-    // In live mode, slider is locked to "now"
-    if (APP_STATE.mode === 'live') {
-      slider.value = 100;
-    }
-    updateTimelineDisplay();
-  });
-}
-
-function updateTimelineDisplay() {
-  const now = new Date();
-  document.getElementById('tl-datetime').textContent = formatDateTime(now);
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
