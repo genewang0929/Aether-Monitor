@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════
    AETHER MONITOR — Smoke Particle System
    Canvas 2D overlay synced with MapLibre GL map.
-   Per-city emitters positioned via map.project().
-   Retina-aware + texture cache for performance.
+   Particles scale with zoom so they stick to the map.
    ═══════════════════════════════════════════════ */
+
+const BASE_ZOOM = 3.6; // default zoom — particles are tuned for this level
 
 class ParticleSystem {
   constructor(canvas) {
@@ -13,14 +14,6 @@ class ParticleSystem {
     this.running = false;
     this.frameId = null;
     this.frameCount = 0;
-    this.textureCache = {};
-
-    // Retina support
-    this.dpr = window.devicePixelRatio || 1;
-    this.canvas.style.width = `${canvas.width}px`;
-    this.canvas.style.height = `${canvas.height}px`;
-    this.canvas.width *= this.dpr;
-    this.canvas.height *= this.dpr;
   }
 
   start() {
@@ -37,11 +30,8 @@ class ParticleSystem {
   }
 
   resize(w, h) {
-    this.dpr = window.devicePixelRatio || 1;
-    this.canvas.style.width = `${w}px`;
-    this.canvas.style.height = `${h}px`;
-    this.canvas.width = w * this.dpr;
-    this.canvas.height = h * this.dpr;
+    this.canvas.width = w;
+    this.canvas.height = h;
   }
 
   updateCity(name, aqi, color, lngLat) {
@@ -59,54 +49,31 @@ class ParticleSystem {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  // Pre-render radial gradient texture per color (avoids createRadialGradient every frame)
-  getTexture(color) {
-    if (this.textureCache[color]) return this.textureCache[color];
-
-    const size = 64;
-    const offscreen = document.createElement('canvas');
-    offscreen.width = size;
-    offscreen.height = size;
-    const octx = offscreen.getContext('2d');
-
-    const c = size / 2;
-    const r = parseInt(color.slice(1, 3), 16);
-    const g = parseInt(color.slice(3, 5), 16);
-    const b = parseInt(color.slice(5, 7), 16);
-
-    const grad = octx.createRadialGradient(c, c, 0, c, c, c);
-    grad.addColorStop(0,   `rgba(${r},${g},${b},0.8)`);
-    grad.addColorStop(0.4, `rgba(${r},${g},${b},0.3)`);
-    grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-
-    octx.fillStyle = grad;
-    octx.fillRect(0, 0, size, size);
-
-    this.textureCache[color] = offscreen;
-    return offscreen;
-  }
-
   _loop() {
     if (!this.running) return;
     this.frameCount++;
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Project each emitter's lng/lat → screen pixels via MapLibre
-    if (glMap) {
-      this.emitters.forEach(emitter => {
-        const pt = glMap.project(emitter.lngLat);
-        emitter.screenX = pt.x;
-        emitter.screenY = pt.y;
-      });
+    if (!glMap) {
+      this.frameId = requestAnimationFrame(() => this._loop());
+      return;
     }
 
-    const dpr = this.dpr;
+    // Zoom-dependent scale: particles grow/shrink with the map
+    const zoom = glMap.getZoom();
+    const zoomScale = Math.pow(2, zoom - BASE_ZOOM);
+
+    // Project emitter centers to screen
+    this.emitters.forEach(emitter => {
+      const pt = glMap.project(emitter.lngLat);
+      emitter.screenX = pt.x;
+      emitter.screenY = pt.y;
+    });
 
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
-      const texture = this.getTexture(emitter.color);
-      emitter.render(this.ctx, texture, dpr);
+      emitter.render(this.ctx, zoomScale);
     });
 
     this.frameId = requestAnimationFrame(() => this._loop());
@@ -187,24 +154,30 @@ class CityEmitter {
     };
   }
 
-  render(ctx, texture, dpr) {
+  render(ctx, zoomScale) {
     if (this.particles.length === 0 || this.aqi <= 0) return;
+    const { r, g, b } = this._parsedColor;
     const sx = this.screenX;
     const sy = this.screenY;
 
     this.particles.forEach(p => {
       const alpha = Math.max(0, p.life * p.baseOpacity);
-      if (alpha < 0.01) return;
+      if (alpha < 0.008) return;
 
-      // Logical screen position → physical pixels for Retina
-      const px = (sx + p.ox) * dpr;
-      const py = (sy + p.oy) * dpr;
-      const ps = p.size * 2 * dpr;
+      // Scale offsets + size by zoom so smoke sticks to the map
+      const px = sx + p.ox * zoomScale;
+      const py = sy + p.oy * zoomScale;
+      const ps = p.size * zoomScale;
 
-      ctx.globalAlpha = alpha;
-      ctx.drawImage(texture, px - ps / 2, py - ps / 2, ps, ps);
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, ps);
+      grad.addColorStop(0,   `rgba(${r},${g},${b},${alpha})`);
+      grad.addColorStop(0.5, `rgba(${r},${g},${b},${alpha * 0.4})`);
+      grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(px, py, ps, 0, Math.PI * 2);
+      ctx.fill();
     });
-
-    ctx.globalAlpha = 1.0;
   }
 }
