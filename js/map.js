@@ -249,7 +249,16 @@ async function handleMapClick(e) {
     el.style.borderColor = color;
     el.style.boxShadow   = `0 0 10px ${color}`;
 
-    if (aqiData.reportingArea) location.name = aqiData.reportingArea;
+    // Spawn smoke for ad-hoc point
+    if (particleSystem) {
+      particleSystem.updateCity('AD_HOC', aqiData.aqi, color, [roundLon, roundLat]);
+    }
+
+    // Update name with reporting area if available
+    if (aqiData.reportingArea) {
+      location.name = aqiData.reportingArea;
+      document.getElementById('sb-selected').textContent = `SELECTED: ${location.name.toUpperCase().replace(/ /g, '_')}`;
+    }
 
     flyToPoint(location.lon, location.lat);
     showCityDetail(location, aqiData);

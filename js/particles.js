@@ -2,16 +2,25 @@
    AETHER MONITOR — Smoke Particle System
    Canvas 2D overlay synced with MapLibre GL map.
    Per-city emitters positioned via map.project().
+   Retina-aware + texture cache for performance.
    ═══════════════════════════════════════════════ */
 
 class ParticleSystem {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.emitters = new Map();  // cityName → CityEmitter
+    this.emitters = new Map();
     this.running = false;
     this.frameId = null;
     this.frameCount = 0;
+    this.textureCache = {};
+
+    // Retina support
+    this.dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${canvas.width}px`;
+    this.canvas.style.height = `${canvas.height}px`;
+    this.canvas.width *= this.dpr;
+    this.canvas.height *= this.dpr;
   }
 
   start() {
@@ -28,8 +37,11 @@ class ParticleSystem {
   }
 
   resize(w, h) {
-    this.canvas.width = w;
-    this.canvas.height = h;
+    this.dpr = window.devicePixelRatio || 1;
+    this.canvas.style.width = `${w}px`;
+    this.canvas.style.height = `${h}px`;
+    this.canvas.width = w * this.dpr;
+    this.canvas.height = h * this.dpr;
   }
 
   updateCity(name, aqi, color, lngLat) {
@@ -47,6 +59,33 @@ class ParticleSystem {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
+  // Pre-render radial gradient texture per color (avoids createRadialGradient every frame)
+  getTexture(color) {
+    if (this.textureCache[color]) return this.textureCache[color];
+
+    const size = 64;
+    const offscreen = document.createElement('canvas');
+    offscreen.width = size;
+    offscreen.height = size;
+    const octx = offscreen.getContext('2d');
+
+    const c = size / 2;
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+
+    const grad = octx.createRadialGradient(c, c, 0, c, c, c);
+    grad.addColorStop(0,   `rgba(${r},${g},${b},0.8)`);
+    grad.addColorStop(0.4, `rgba(${r},${g},${b},0.3)`);
+    grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+
+    octx.fillStyle = grad;
+    octx.fillRect(0, 0, size, size);
+
+    this.textureCache[color] = offscreen;
+    return offscreen;
+  }
+
   _loop() {
     if (!this.running) return;
     this.frameCount++;
@@ -62,9 +101,12 @@ class ParticleSystem {
       });
     }
 
+    const dpr = this.dpr;
+
     this.emitters.forEach(emitter => {
       emitter.update(this.frameCount);
-      emitter.render(this.ctx);
+      const texture = this.getTexture(emitter.color);
+      emitter.render(this.ctx, texture, dpr);
     });
 
     this.frameId = requestAnimationFrame(() => this._loop());
@@ -112,15 +154,13 @@ class CityEmitter {
   update(frame) {
     const cfg = this._cfg();
 
-    // Emit new particles
     const emitPerFrame = Math.max(1, Math.ceil(cfg.maxCount / 90));
     for (let i = 0; i < emitPerFrame; i++) {
       if (this.particles.length < cfg.maxCount) {
-        this.particles.push(this._spawn(cfg, frame));
+        this.particles.push(this._spawn(cfg));
       }
     }
 
-    // Update positions (offsets from screen center)
     const t = frame * 0.012;
     this.particles = this.particles.filter(p => {
       p.ox += p.vx + Math.sin(t + p.phase) * 0.2;
@@ -135,7 +175,7 @@ class CityEmitter {
   _spawn(cfg) {
     const spread = 14 + (this.aqi / 10);
     return {
-      ox:    (Math.random() - 0.5) * spread,   // offset from screen center
+      ox:    (Math.random() - 0.5) * spread,
       oy:    -Math.random() * 4,
       vx:    (Math.random() - 0.5) * 0.7,
       vy:    -(cfg.speed * (0.6 + Math.random() * 0.5)),
@@ -147,28 +187,24 @@ class CityEmitter {
     };
   }
 
-  render(ctx) {
-    if (this.particles.length === 0) return;
-    const { r, g, b } = this._parsedColor;
+  render(ctx, texture, dpr) {
+    if (this.particles.length === 0 || this.aqi <= 0) return;
     const sx = this.screenX;
     const sy = this.screenY;
 
     this.particles.forEach(p => {
       const alpha = Math.max(0, p.life * p.baseOpacity);
-      if (alpha < 0.008) return;
+      if (alpha < 0.01) return;
 
-      const px = sx + p.ox;
-      const py = sy + p.oy;
+      // Logical screen position → physical pixels for Retina
+      const px = (sx + p.ox) * dpr;
+      const py = (sy + p.oy) * dpr;
+      const ps = p.size * 2 * dpr;
 
-      const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size);
-      grad.addColorStop(0,   `rgba(${r},${g},${b},${alpha})`);
-      grad.addColorStop(0.5, `rgba(${r},${g},${b},${alpha * 0.4})`);
-      grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(px, py, p.size, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(texture, px - ps / 2, py - ps / 2, ps, ps);
     });
+
+    ctx.globalAlpha = 1.0;
   }
 }

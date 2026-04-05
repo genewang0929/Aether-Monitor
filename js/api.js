@@ -238,14 +238,32 @@ async function fetchLocationAQI(lat, lon) {
   }
 
   try {
-    const resp = await fetch(
-      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${CONFIG.OPENWEATHER_KEY}`
-    );
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    // 1. Fetch Air Pollution
+    const pollutionUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${CONFIG.OPENWEATHER_KEY}`;
+    
+    // 2. Fetch Location Name (Reverse Geocoding)
+    const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${CONFIG.OPENWEATHER_KEY}`;
 
-    const { name: pollutant, aqi } = componentsToUSAQI(data.list[0].components);
-    return { aqi, pollutant, trend: [], timestamp: new Date() };
+    const [pollRes, geoRes] = await Promise.all([
+      fetch(pollutionUrl),
+      fetch(geoUrl)
+    ]);
+
+    if (!pollRes.ok) throw new Error(`Pollution API Error: ${pollRes.status}`);
+    
+    const pollData = await pollRes.json();
+    const { name: pollutant, aqi } = componentsToUSAQI(pollData.list[0].components);
+
+    let reportingArea = null;
+    if (geoRes.ok) {
+      const geoData = await geoRes.json();
+      if (geoData && geoData.length > 0) {
+        reportingArea = geoData[0].name;
+        if (geoData[0].state) reportingArea += `, ${geoData[0].state}`;
+      }
+    }
+
+    return { aqi, pollutant, trend: [], reportingArea, timestamp: new Date() };
   } catch (err) {
     console.warn(`[OWM] Failed for (${lat}, ${lon}):`, err.message);
     return { aqi: null, pollutant: '--', trend: [], timestamp: new Date() };
