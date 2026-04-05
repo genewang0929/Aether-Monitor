@@ -4,12 +4,9 @@
    ═══════════════════════════════════════════════ */
 
 window.ENV = {
-    // Get your free EPA AirNow key at: https://www.airnowapi.org/account/request/
-    AIRNOW_KEY: '',
-
     // Get your free OpenWeatherMap key at: https://openweathermap.org/api
+    // Used for both weather AND air quality (Air Pollution API, free tier)
     OPENWEATHER_KEY: '',
 
-    // Get your Anthropic key at: https://console.anthropic.com/
     GEMINI_KEY: '',
 };
