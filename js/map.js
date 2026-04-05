@@ -389,18 +389,21 @@ function renderCityNodes(aqiData) {
       .attr('fill', '#ffffff')
       .attr('opacity', 0.9);
 
-    // NODE_XX label above city
+    // CITY NAME label below city (avoiding smoke occlusion)
     g.append('text')
       .attr('class', 'city-label')
       .attr('x', 0)
-      .attr('y', -(radius + 8))
+      .attr('y', radius + 11)
       .attr('text-anchor', 'middle')
+      .attr('paint-order', 'stroke fill')
+      .attr('stroke', '#0b1121')
+      .attr('stroke-width', 2.5)
       .attr('fill', color)
       .attr('font-family', "'Space Mono', monospace")
       .attr('font-size', '8px')
       .attr('letter-spacing', '1px')
-      .attr('opacity', 0.7)
-      .text(city.id);
+      .attr('opacity', 0.8)
+      .text(city.name.toUpperCase());
 
     // Event handlers
     g.on('mouseenter', function (event) {
@@ -441,11 +444,19 @@ function updateCityNode(cityName, aqi, color) {
     .attr('stroke', color);
 
   g.select('text')
-    .attr('fill', color);
+    .attr('fill', color)
+    .text(city.name.toUpperCase());
 
   if (city.x && city.y) {
     particleSystem.updateCity(cityName, city.x, city.y, aqi, color);
   }
+}
+
+function updateScrubbedMap(aqiData) {
+  CONFIG.CITIES.forEach(city => {
+    const data = aqiData[city.name] || { aqi: 0 };
+    updateCityNode(city.name, data.aqi, getAQIColor(data.aqi));
+  });
 }
 
 // ── PING ANIMATION ────────────────────────────────────────────────────────────
@@ -469,9 +480,11 @@ function animatePing(node, radius) {
 
 // ── TOOLTIP ───────────────────────────────────────────────────────────────────
 
-function showTooltip(city, data, event) {
+function showTooltip(city, baseData, event) {
   const tooltip = document.getElementById('map-tooltip');
   const container = document.getElementById('map-container');
+
+  const data = (window.APP_STATE && window.APP_STATE.scrubbedData && window.APP_STATE.scrubbedData[city.name]) || baseData;
 
   document.getElementById('tt-id').textContent = city.id;
   document.getElementById('tt-city').textContent = city.name.toUpperCase();

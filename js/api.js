@@ -82,52 +82,69 @@ function getMockAnalysis(city, aqi, pollutant) {
 
 // ── LIVE API FUNCTIONS ────────────────────────────────────────────────────────
 
-function generateVisualTrend(currentAqi) {
-  const trend = [];
-  let val = currentAqi;
-  for (let i = 0; i < 7; i++) {
-    trend.unshift(Math.round(val));
-    val = Math.max(0, val + (Math.random() * 12 - 6));
+function extractWAQITrends(dailyForecast, dominantPol) {
+  if (!dailyForecast) return { trend: [], forecast: [] };
+
+  let items = dailyForecast[dominantPol];
+  if (!items) {
+    items = dailyForecast['pm25'] || dailyForecast['pm10'] || dailyForecast['o3'] || Object.values(dailyForecast)[0];
   }
-  return trend;
+  
+  if (!items || items.length === 0) {
+    return { trend: [], forecast: [] };
+  }
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
+  const todayIndex = items.findIndex(item => item.day === todayStr);
+  
+  if (todayIndex === -1) {
+    // If today exists not in array, just use it raw
+    return { trend: items.map(d => d.avg), forecast: items.map(d => d.avg) };
+  }
+
+  const trend = items.slice(0, todayIndex + 1).map(d => d.avg);
+  const forecast = items.slice(todayIndex + 1).map(d => d.avg);
+
+  return { trend, forecast, rawDates: items.map(d => d.day) };
 }
 
 async function fetchCityAQI(city) {
-  if (!CONFIG.AIRNOW_KEY) {
-    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [55, 55, 55, 55, 55, 55, 55] };
-    return { ...mock, timestamp: new Date() };
+  if (!CONFIG.AQICN_TOKEN) {
+    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'pm25', trend: [55, 55, 55, 55, 55, 55, 55] };
+    return { ...mock, forecast: [], timestamp: new Date() };
   }
 
   try {
-    const url = [
-      'https://www.airnowapi.org/aq/observation/latLong/current/',
-      `?format=application/json`,
-      `&latitude=${city.lat}`,
-      `&longitude=${city.lon}`,
-      `&distance=50`,
-      `&API_KEY=${CONFIG.AIRNOW_KEY}`,
-    ].join('');
-
+    const url = `https://api.waqi.info/feed/geo:${city.lat};${city.lon}/?token=${CONFIG.AQICN_TOKEN}`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const json = await resp.json();
 
-    if (!data || data.length === 0) throw new Error('No data');
+    if (json.status !== 'ok') throw new Error(json.data || 'WAQI Error');
 
-    // Pick parameter with highest AQI
-    const sorted = [...data].sort((a, b) => b.AQI - a.AQI);
-    const obs = sorted[0];
+    const data = json.data;
+    const aqi = data.aqi === '-' ? 0 : parseInt(data.aqi, 10);
+    const pollutant = data.dominentpol || 'pm25';
+
+    const { trend, forecast, rawDates } = extractWAQITrends(data.forecast?.daily, pollutant);
 
     return {
-      aqi: obs.AQI,
-      pollutant: obs.ParameterName,
-      trend: generateVisualTrend(obs.AQI),
+      aqi,
+      pollutant,
+      trend,
+      forecast,
+      rawDates,
       timestamp: new Date(),
     };
   } catch (err) {
-    console.warn(`[AirNow] Failed for ${city.name}:`, err.message);
-    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'PM2.5', trend: [] };
-    return { ...mock, timestamp: new Date() };
+    console.warn(`[WAQI] Failed for ${city.name}:`, err.message);
+    const mock = MOCK_AQI[city.name] || { aqi: 55, pollutant: 'pm25', trend: [] };
+    return { ...mock, forecast: [], timestamp: new Date() };
   }
 }
 
@@ -159,40 +176,35 @@ async function fetchWeather(city) {
 
 // Fetch AQI for an arbitrary lat/lon (click-anywhere feature)
 async function fetchLocationAQI(lat, lon) {
-  if (!CONFIG.AIRNOW_KEY) {
-    // No API key — return a generic estimate
-    return { aqi: 50, pollutant: 'PM2.5', trend: [], timestamp: new Date() };
+  if (!CONFIG.AQICN_TOKEN) {
+    return { aqi: 50, pollutant: 'pm25', trend: [], forecast: [], timestamp: new Date() };
   }
 
   try {
-    const url = [
-      'https://www.airnowapi.org/aq/observation/latLong/current/',
-      `?format=application/json`,
-      `&latitude=${lat}`,
-      `&longitude=${lon}`,
-      `&distance=50`,
-      `&API_KEY=${CONFIG.AIRNOW_KEY}`,
-    ].join('');
-
+    const url = `https://api.waqi.info/feed/geo:${lat};${lon}/?token=${CONFIG.AQICN_TOKEN}`;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const json = await resp.json();
 
-    if (!data || data.length === 0) throw new Error('No data for this location');
+    if (json.status !== 'ok') throw new Error(json.data || 'WAQI Error');
 
-    const sorted = [...data].sort((a, b) => b.AQI - a.AQI);
-    const obs = sorted[0];
+    const data = json.data;
+    const aqi = data.aqi === '-' ? 0 : parseInt(data.aqi, 10);
+    const pollutant = data.dominentpol || 'pm25';
+
+    const { trend, forecast, rawDates } = extractWAQITrends(data.forecast?.daily, pollutant);
 
     return {
-      aqi: obs.AQI,
-      pollutant: obs.ParameterName,
-      trend: generateVisualTrend(obs.AQI),
+      aqi,
+      pollutant,
+      trend,
+      forecast,
       timestamp: new Date(),
-      reportingArea: obs.ReportingArea || null,
+      reportingArea: data.city?.name || null,
     };
   } catch (err) {
-    console.warn(`[AirNow] Failed for (${lat}, ${lon}):`, err.message);
-    return { aqi: null, pollutant: '--', trend: [], timestamp: new Date() };
+    console.warn(`[WAQI] Failed for (${lat}, ${lon}):`, err.message);
+    return { aqi: null, pollutant: '--', trend: [], forecast: [], timestamp: new Date() };
   }
 }
 

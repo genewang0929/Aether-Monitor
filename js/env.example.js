@@ -4,8 +4,8 @@
    ═══════════════════════════════════════════════ */
 
 window.ENV = {
-    // Get your free EPA AirNow key at: https://www.airnowapi.org/account/request/
-    AIRNOW_KEY: '',
+    // Get your free WAQI API Token at: https://aqicn.org/data-platform/token/
+    AQICN_TOKEN: '',
 
     // Get your free OpenWeatherMap key at: https://openweathermap.org/api
     OPENWEATHER_KEY: '',
