@@ -210,16 +210,18 @@ function initTimeline() {
 
       // Update slider range labels
       if (mode === 'historical') {
-        document.getElementById('tl-left').textContent  = '2020';
-        document.getElementById('tl-right').textContent = 'TODAY';
+        document.getElementById('tl-left').textContent  = 'PAST';
+        document.getElementById('tl-right').textContent = 'NOW';
         slider.value = 100;
+        slider.max = 100;
       } else if (mode === 'forecast') {
         document.getElementById('tl-left').textContent  = 'NOW';
         document.getElementById('tl-right').textContent = '+72H';
         slider.value = 0;
+        slider.max = 100;
       } else {
-        document.getElementById('tl-left').textContent  = 'PAST';
-        document.getElementById('tl-right').textContent = 'NOW';
+        document.getElementById('tl-left').textContent  = 'LIVE';
+        document.getElementById('tl-right').textContent = 'LIVE';
         slider.value = 100;
       }
 
@@ -228,17 +230,51 @@ function initTimeline() {
   });
 
   slider.addEventListener('input', () => {
-    // In live mode, slider is locked to "now"
-    if (APP_STATE.mode === 'live') {
-      slider.value = 100;
+    // In live mode, break out to historical
+    if (APP_STATE.mode === 'live' && slider.value < 100) {
+       document.querySelector('[data-mode="historical"]').click();
+       return;
     }
     updateTimelineDisplay();
   });
 }
 
 function updateTimelineDisplay() {
-  const now = new Date();
-  document.getElementById('tl-datetime').textContent = formatDateTime(now);
+  if (!APP_STATE.aqiData) return;
+  const slider = document.getElementById('timeline-slider');
+  const val = parseInt(slider.value, 10);
+  
+  const scrubbedData = {};
+  let targetDate = new Date(APP_STATE.lastSync || Date.now());
+
+  Object.entries(APP_STATE.aqiData).forEach(([cityName, data]) => {
+    let aqi = data.aqi;
+    
+    if (APP_STATE.mode === 'historical') {
+      const histPoints = data.trend || [];
+      if (histPoints.length > 0) {
+        const idx = Math.min(Math.floor((val / 100) * histPoints.length), histPoints.length - 1);
+        aqi = histPoints[idx] || aqi;
+        targetDate.setDate(new Date().getDate() - (histPoints.length - 1 - idx));
+      }
+    } else if (APP_STATE.mode === 'forecast') {
+      const futPoints = data.forecast || [];
+      if (futPoints.length > 0) {
+        const idx = Math.min(Math.floor((val / 100) * futPoints.length), futPoints.length - 1);
+        aqi = futPoints[idx] || aqi;
+        targetDate.setDate(new Date().getDate() + 1 + idx);
+      }
+    }
+
+    scrubbedData[cityName] = { ...data, aqi, trend: [] }; 
+  });
+
+  document.getElementById('tl-datetime').textContent = formatDateTime(targetDate);
+
+  APP_STATE.scrubbedData = scrubbedData;
+  updateScrubbedMap(scrubbedData);
+  renderNodesPanel(scrubbedData);
+  updateTelemetry(scrubbedData);
 }
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
