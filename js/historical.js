@@ -4,20 +4,34 @@
    ═══════════════════════════════════════════════ */
 
 let historicalActive = false;
+let historicalDashboard = false;
 let historicalIndex = 0;
+let autoplayTimer = null;
+let autoplayPlaying = false;
 
 // ── VIEW ACTIVATION ──────────────────────────────────────────────────────────
 
+// Step 1: Show dashboard landing screen
 function enterHistoricalView() {
-  if (historicalActive) return;
-  historicalActive = true;
+  historicalDashboard = true;
 
-  document.body.classList.add('view-historical');
-
-  // Show historical panel, hide floating city detail
-  document.getElementById('historical-panel').style.display = 'flex';
   document.getElementById('city-detail').style.display = 'none';
   document.querySelector('.float-telemetry').style.display = 'none';
+  document.getElementById('hist-dashboard').style.display = 'flex';
+
+  document.getElementById('sb-mode').textContent = 'MODE: HISTORICAL';
+}
+
+// Step 2: Launch a specific city demo (called from dashboard card click)
+function launchPhoenixDemo() {
+  if (historicalActive) return;
+  historicalActive = true;
+  historicalDashboard = false;
+
+  // Hide dashboard, show historical panel
+  document.getElementById('hist-dashboard').style.display = 'none';
+  document.getElementById('historical-panel').style.display = 'flex';
+  document.body.classList.add('view-historical');
 
   // Show timeline bar
   document.querySelector('.timeline-bar').style.display = 'flex';
@@ -32,7 +46,6 @@ function enterHistoricalView() {
 
   // Update edge labels
   const first = new Date(HISTORICAL_PHOENIX[0].timestamp);
-  const last = new Date(HISTORICAL_PHOENIX[maxIdx].timestamp);
   document.getElementById('tl-left').textContent = formatShortDate(first);
   document.getElementById('tl-right').textContent = 'NOW';
 
@@ -46,28 +59,27 @@ function enterHistoricalView() {
   const phoenix = CONFIG.CITIES.find(c => c.name === 'Phoenix');
   if (phoenix) flyToPoint(phoenix.lon, phoenix.lat);
 
-  // Update status bar
-  document.getElementById('sb-mode').textContent = 'MODE: HISTORICAL';
-
   // Render Phoenix-only node on map
   renderHistoricalMapState(maxIdx);
 }
 
 function exitHistoricalView() {
-  if (!historicalActive) return;
   historicalActive = false;
+  historicalDashboard = false;
 
   document.body.classList.remove('view-historical');
 
-  // Hide historical panel, restore floating telemetry
+  // Hide everything historical
+  document.getElementById('hist-dashboard').style.display = 'none';
   document.getElementById('historical-panel').style.display = 'none';
+  document.getElementById('hist-bubble').style.display = 'none';
   document.querySelector('.float-telemetry').style.display = 'block';
 
   // Hide timeline bar
   document.querySelector('.timeline-bar').style.display = 'none';
 
-  // Stop drums
-  drumStop();
+  // Stop autoplay + drums
+  autoplayPause();
 
   // Reset map: zoom out and re-render all city nodes
   resetMapView();
@@ -95,6 +107,8 @@ function initHistoricalSlider() {
     updateHistoricalDisplay(idx);
     updateChartMarker(idx);
     renderHistoricalMapState(idx);
+    // Hide bubble when scrubbing
+    document.getElementById('hist-bubble').style.display = 'none';
 
     const aqi = HISTORICAL_PHOENIX[idx]?.aqi || 0;
 
@@ -123,6 +137,90 @@ function initHistoricalSlider() {
   window.addEventListener('pointerup', stopDrag);
   window.addEventListener('mouseup', stopDrag);
   window.addEventListener('touchend', stopDrag);
+
+  // Play/Pause button
+  document.getElementById('tl-play-btn').addEventListener('click', () => {
+    if (autoplayPlaying) {
+      autoplayPause();
+    } else {
+      autoplayStart();
+    }
+  });
+}
+
+// ── AUTOPLAY ─────────────────────────────────────────────────────────────────
+
+function updateDancer(aqi) {
+  const dancer = document.getElementById('dancer');
+  const face = document.getElementById('dancer-face');
+
+  if (aqi <= 50) {
+    dancer.style.setProperty('--dance-speed', '1.2s');
+    face.textContent = '😄';
+  } else if (aqi <= 80) {
+    dancer.style.setProperty('--dance-speed', '0.9s');
+    face.textContent = '🙂';
+  } else if (aqi <= 110) {
+    dancer.style.setProperty('--dance-speed', '0.6s');
+    face.textContent = '😐';
+  } else if (aqi <= 140) {
+    dancer.style.setProperty('--dance-speed', '0.4s');
+    face.textContent = '😰';
+  } else {
+    dancer.style.setProperty('--dance-speed', '0.25s');
+    face.textContent = '😵';
+  }
+}
+
+function autoplayStart() {
+  if (!historicalActive) return;
+  autoplayPlaying = true;
+  document.getElementById('tl-play-btn').textContent = '⏸';
+  document.getElementById('dancer').style.display = 'block';
+
+  const slider = document.getElementById('timeline-slider');
+  const maxIdx = HISTORICAL_PHOENIX.length - 1;
+
+  // If at the end, restart from beginning
+  if (historicalIndex >= maxIdx) {
+    historicalIndex = 0;
+    slider.value = 0;
+  }
+
+  // Start drums + dancer
+  const aqi = HISTORICAL_PHOENIX[historicalIndex]?.aqi || 0;
+  drumStart(aqi);
+  updateDancer(aqi);
+
+  // Advance one step every 150ms
+  autoplayTimer = setInterval(() => {
+    if (historicalIndex >= maxIdx) {
+      autoplayPause();
+      return;
+    }
+
+    historicalIndex++;
+    slider.value = historicalIndex;
+
+    updateHistoricalDisplay(historicalIndex);
+    updateChartMarker(historicalIndex);
+    renderHistoricalMapState(historicalIndex);
+
+    const aqi = HISTORICAL_PHOENIX[historicalIndex]?.aqi || 0;
+    drumUpdateAQI(aqi);
+    updateDancer(aqi);
+  }, 150);
+}
+
+function autoplayPause() {
+  autoplayPlaying = false;
+  document.getElementById('tl-play-btn').textContent = '▶';
+  document.getElementById('dancer').style.display = 'none';
+  drumStop();
+  if (autoplayTimer) {
+    clearInterval(autoplayTimer);
+    autoplayTimer = null;
+  }
 }
 
 // ── DATA DISPLAY ─────────────────────────────────────────────────────────────
@@ -173,17 +271,10 @@ function renderHistoricalMapState(idx) {
   const phoenix = CONFIG.CITIES.find(c => c.name === 'Phoenix');
   if (!phoenix) return;
 
-  const color = getAQIColor(d.aqi);
-  const fakeAqiData = {};
-  CONFIG.CITIES.forEach(c => {
-    if (c.name === 'Phoenix') {
-      fakeAqiData[c.name] = { aqi: d.aqi, pollutant: d.pollutant, trend: [], timestamp: new Date(d.timestamp) };
-    } else {
-      // Dim other cities in historical mode
-      fakeAqiData[c.name] = { aqi: 0, pollutant: '--', trend: [], timestamp: null };
-    }
-  });
-  renderCityNodes(fakeAqiData);
+  // Only show Phoenix — hide all other cities
+  const phoenixOnly = {};
+  phoenixOnly['Phoenix'] = { aqi: d.aqi, pollutant: d.pollutant, trend: [], timestamp: new Date(d.timestamp) };
+  renderCityNodesFiltered(phoenixOnly);
 }
 
 // ── 30-DAY AQI CHART ────────────────────────────────────────────────────────
@@ -286,4 +377,38 @@ function formatShortDate(date) {
 
 function initHistorical() {
   initHistoricalSlider();
+
+  // Dashboard card click → launch Phoenix demo
+  document.getElementById('hd-phoenix').addEventListener('click', () => {
+    launchPhoenixDemo();
+  });
+
+  // Close bubble
+  document.getElementById('hist-bubble-close').addEventListener('click', () => {
+    document.getElementById('hist-bubble').style.display = 'none';
+  });
+
+  // "What happened?" button → speech bubble on map
+  document.getElementById('hist-why-btn').addEventListener('click', async () => {
+    const d = HISTORICAL_PHOENIX[historicalIndex];
+    if (!d) return;
+
+    const bubble = document.getElementById('hist-bubble');
+    const textEl = document.getElementById('hist-bubble-text');
+    bubble.style.display = 'block';
+    textEl.textContent = 'Analyzing...';
+
+    const phoenix = CONFIG.CITIES.find(c => c.name === 'Phoenix');
+    const aqiData = { aqi: d.aqi, pollutant: d.pollutant, trend: [] };
+    const weatherData = { temp: d.temp, humidity: d.humidity, wind: d.wind, condition: d.condition };
+
+    const analysis = await fetchGeminiAnalysis(phoenix, aqiData, weatherData);
+
+    // Trim to 4 sentences max
+    const sentences = analysis.match(/[^.!?]+[.!?]+/g) || [analysis];
+    const short = sentences.slice(0, 4).join(' ').trim();
+
+    textEl.textContent = '';
+    typewriteInto(textEl, short);
+  });
 }
